@@ -1,8 +1,9 @@
-import { getUsers, saveUsers, verifyPassword, newSessionToken, setSessionCookie, publicUser } from "../../../lib/auth";
+import { getUsers, saveUsers, verifyPassword, newSessionToken, setSessionCookie, publicUser, migrateLegacyIfNeeded } from "../../../lib/auth";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") { res.status(405).end(); return; }
   try {
+    await migrateLegacyIfNeeded();
     const { username, password } = req.body || {};
     const users = await getUsers();
     const user = users.find((u) => u.username.toLowerCase() === String(username || "").trim().toLowerCase());

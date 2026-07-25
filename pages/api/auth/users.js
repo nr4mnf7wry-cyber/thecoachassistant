@@ -7,10 +7,13 @@ export default async function handler(req, res) {
     if (!sessionUser) { res.status(401).json({ error: "Non connecté." }); return; }
     if (sessionUser.role !== "head") { res.status(403).json({ error: "Réservé à l'entraîneur principal." }); return; }
 
-    const users = await getUsers();
+    const allUsers = await getUsers();
+    // Cloisonnement strict : on ne travaille jamais que sur les comptes du même club que le demandeur.
+    const clubUsers = allUsers.filter((u) => u.clubId === sessionUser.clubId);
+    const otherUsers = allUsers.filter((u) => u.clubId !== sessionUser.clubId);
 
     if (req.method === "GET") {
-      res.status(200).json({ users: users.map(publicUser) });
+      res.status(200).json({ users: clubUsers.map(publicUser) });
       return;
     }
 
@@ -21,19 +24,20 @@ export default async function handler(req, res) {
         res.status(400).json({ error: "Nom d'utilisateur requis et mot de passe d'au moins 8 caractères." });
         return;
       }
-      if (users.some((u) => u.username.toLowerCase() === cleanUsername.toLowerCase())) {
+      if (allUsers.some((u) => u.username.toLowerCase() === cleanUsername.toLowerCase())) {
         res.status(409).json({ error: "Ce nom d'utilisateur existe déjà." });
         return;
       }
       const newUser = {
         id: crypto.randomUUID(),
+        clubId: sessionUser.clubId,
         username: cleanUsername,
         passwordHash: hashPassword(password),
         role: "assistant",
         createdAt: new Date().toISOString(),
         sessionToken: null,
       };
-      await saveUsers([...users, newUser]);
+      await saveUsers([...allUsers, newUser]);
       res.status(200).json({ ok: true, user: publicUser(newUser) });
       return;
     }
@@ -41,9 +45,10 @@ export default async function handler(req, res) {
     if (req.method === "DELETE") {
       const { id } = req.query;
       if (!id) { res.status(400).json({ error: "id requis." }); return; }
-      const target = users.find((u) => u.id === id);
-      if (target && target.role === "head") { res.status(400).json({ error: "Impossible de supprimer le compte entraîneur principal." }); return; }
-      await saveUsers(users.filter((u) => u.id !== id));
+      const target = clubUsers.find((u) => u.id === id);
+      if (!target) { res.status(404).json({ error: "Compte introuvable." }); return; }
+      if (target.role === "head") { res.status(400).json({ error: "Impossible de supprimer le compte entraîneur principal." }); return; }
+      await saveUsers([...otherUsers, ...clubUsers.filter((u) => u.id !== id)]);
       res.status(200).json({ ok: true });
       return;
     }

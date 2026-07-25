@@ -17,8 +17,12 @@ export async function middleware(req) {
   if (token) {
     try {
       const redis = Redis.fromEnv();
-      const users = (await redis.get("team-users")) || [];
-      if (users.some((u) => u.sessionToken === token)) {
+      const [users, legacyUsers] = await Promise.all([
+        redis.get("app-users"),
+        redis.get("team-users"),
+      ]);
+      const allUsers = [...(users || []), ...(legacyUsers || [])];
+      if (allUsers.some((u) => u.sessionToken === token)) {
         return NextResponse.next();
       }
     } catch (e) {

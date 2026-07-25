@@ -1,42 +1,29 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/router";
 import { ShieldHalf } from "lucide-react";
 import { useLang } from "../lib/i18n";
 
 export default function Login() {
   const { t, lang, setLang } = useLang();
-  const [checking, setChecking] = useState(true);
-  const [mode, setMode] = useState("login"); // "login" | "bootstrap"
+  const [mode, setMode] = useState("login"); // "login" | "signup"
+  const [teamName, setTeamName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/auth/status");
-        const data = await res.json();
-        setMode(data.hasUsers ? "login" : "bootstrap");
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setChecking(false);
-      }
-    })();
-  }, []);
-
   const submit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      const endpoint = mode === "bootstrap" ? "/api/auth/bootstrap" : "/api/auth/login";
+      const endpoint = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
+      const body = mode === "signup" ? { teamName, username, password } : { username, password };
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (res.ok) {
@@ -63,37 +50,53 @@ export default function Login() {
         <span style={styles.brandName}>TheCoachAssistant</span>
       </div>
 
-      {!checking && (
-        <form onSubmit={submit} style={styles.card}>
-          <h1 style={styles.title}>{mode === "bootstrap" ? t("bootstrap_title") : t("login_title")}</h1>
-          <p style={styles.sub}>{mode === "bootstrap" ? t("bootstrap_sub") : t("login_sub")}</p>
+      <form onSubmit={submit} style={styles.card}>
+        <h1 style={styles.title}>{mode === "signup" ? t("signup_title") : t("login_title")}</h1>
+        <p style={styles.sub}>{mode === "signup" ? t("signup_sub") : t("login_sub")}</p>
 
-          <label style={styles.label}>{t("field_username")}</label>
-          <input
-            type="text"
-            autoFocus
-            autoComplete="username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder={t("username_placeholder")}
-            style={styles.input}
-          />
-          <label style={styles.label}>{t("field_password")}</label>
-          <input
-            type="password"
-            autoComplete={mode === "bootstrap" ? "new-password" : "current-password"}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder={t("login_placeholder")}
-            style={styles.input}
-          />
-          {mode === "bootstrap" && <p style={styles.hint}>{t("bootstrap_password_hint")}</p>}
-          {error && <p style={styles.error}>{error}</p>}
-          <button type="submit" disabled={loading} style={styles.button}>
-            {loading ? t("login_verifying") : mode === "bootstrap" ? t("bootstrap_button") : t("login_button")}
+        {mode === "signup" && (
+          <>
+            <label style={styles.label}>{t("field_team_name")}</label>
+            <input
+              type="text" autoFocus value={teamName}
+              onChange={(e) => setTeamName(e.target.value)}
+              placeholder={t("team_name_placeholder")}
+              style={styles.input}
+            />
+          </>
+        )}
+        <label style={styles.label}>{t("field_username")}</label>
+        <input
+          type="text"
+          autoFocus={mode === "login"}
+          autoComplete="username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder={t("username_placeholder")}
+          style={styles.input}
+        />
+        <label style={styles.label}>{t("field_password")}</label>
+        <input
+          type="password"
+          autoComplete={mode === "signup" ? "new-password" : "current-password"}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder={t("login_placeholder")}
+          style={styles.input}
+        />
+        {mode === "signup" && <p style={styles.hint}>{t("bootstrap_password_hint")}</p>}
+        {error && <p style={styles.error}>{error}</p>}
+        <button type="submit" disabled={loading} style={styles.button}>
+          {loading ? t("login_verifying") : mode === "signup" ? t("bootstrap_button") : t("login_button")}
+        </button>
+
+        <p style={styles.switchRow}>
+          {mode === "login" ? t("no_team_yet") : t("already_have_team")}{" "}
+          <button type="button" style={styles.switchLink} onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); }}>
+            {mode === "login" ? t("create_team_link") : t("login_link")}
           </button>
-        </form>
-      )}
+        </p>
+      </form>
     </div>
   );
 }
@@ -158,4 +161,6 @@ const styles = {
     cursor: "pointer",
     fontSize: "14px",
   },
+  switchRow: { textAlign: "center", fontSize: "12.5px", color: "#667085", margin: "16px 0 0" },
+  switchLink: { background: "none", border: "none", color: "#2563EB", fontWeight: 600, cursor: "pointer", fontSize: "12.5px", padding: 0 },
 };
