@@ -1,0 +1,158 @@
+import { useState, useMemo } from "react";
+import { Plus, Trash2, Dumbbell, CalendarDays } from "lucide-react";
+import { useLang } from "../lib/i18n";
+import { uid, Modal, DateField, UNAVAILABILITY_STATUSES, AVAILABILITY_KEYS, todayStr, formatDate, addDaysToDateStr } from "../lib/shared";
+
+const STATUS_COLORS = {
+  "Disponible": "var(--gold)", "Absent": "#DC2626", "Vacances": "#EA580C",
+  "Blessé": "#A16207", "Suspendu": "#7C3AED", "Travail": "#111827", "Autre": "#6B7280",
+};
+const statusChipStyle = (status) => ({
+  background: STATUS_COLORS[status] || STATUS_COLORS.Autre,
+  color: "var(--on-accent)",
+  border: "1px solid rgba(15,23,42,0.08)",
+});
+
+function isDateInRange(dateStr, start, end) {
+  if (!start) return false;
+  return dateStr >= start && dateStr <= (end || start);
+}
+
+function statusForDate(availabilities, playerId, dateStr) {
+  const matches = availabilities.filter((a) => a.playerId === playerId && isDateInRange(dateStr, a.startDate, a.endDate));
+  if (!matches.length) return null; // pas d'entrée = disponible par défaut
+  return matches.sort((a, b) => (a.startDate < b.startDate ? 1 : -1))[0];
+}
+
+function getUpcomingEvents(matches, trainings) {
+  const today = todayStr();
+  const in30 = addDaysToDateStr(today, 30);
+  const inWindow = (d) => d >= today && d <= in30;
+  const trainingEvents = (trainings || []).filter((tr) => inWindow(tr.date)).map((tr) => ({ id: "t-" + tr.id, date: tr.date, type: "training" }));
+  const matchEvents = (matches || []).filter((m) => inWindow(m.date)).map((m) => ({ id: "m-" + m.id, date: m.date, type: "match" }));
+  return [...trainingEvents, ...matchEvents].sort((a, b) => (a.date > b.date ? 1 : -1));
+}
+
+function DispoForm({ players, onSave, onClose }) {
+  const { t } = useLang();
+  const [form, setForm] = useState({
+    playerId: players[0]?.id || "",
+    status: UNAVAILABILITY_STATUSES[0],
+    startDate: todayStr(),
+    endDate: "",
+    note: "",
+  });
+  return (
+    <Modal title={t("dispo_form_title")} onClose={onClose}>
+      <div className="form-grid">
+        <label>{t("th_player")}
+          <select value={form.playerId} onChange={(e) => setForm({ ...form, playerId: e.target.value })}>
+            {players.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </label>
+        <label>{t("field_status")}
+          <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+            {UNAVAILABILITY_STATUSES.map((s) => <option key={s} value={s}>{t(AVAILABILITY_KEYS[s])}</option>)}
+          </select>
+        </label>
+        <label>{t("field_start_date")}<DateField value={form.startDate} onChange={(v) => setForm({ ...form, startDate: v })} /></label>
+        <label>{t("field_end_date")}<DateField value={form.endDate} onChange={(v) => setForm({ ...form, endDate: v })} /></label>
+        <label>{t("field_note")}<input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} /></label>
+      </div>
+      <button className="btn-gold" onClick={() => { if (form.playerId) onSave({ id: uid(), ...form }); }}>
+        {t("common_save")}
+      </button>
+    </Modal>
+  );
+}
+
+export function Disponibilites({ players, availabilities, setAvailabilities, matches, trainings }) {
+  const { t } = useLang();
+  const [showForm, setShowForm] = useState(false);
+  const upcomingEvents = useMemo(() => getUpcomingEvents(matches, trainings), [matches, trainings]);
+  const history = [...availabilities].sort((a, b) => (a.startDate < b.startDate ? 1 : -1)).slice(0, 40);
+
+  const save = (entry) => { setAvailabilities([...availabilities, entry]); setShowForm(false); };
+  const remove = (id) => setAvailabilities(availabilities.filter((a) => a.id !== id));
+
+  return (
+    <div>
+      <div className="view-header">
+        <h1>{t("dispo_title")}</h1>
+        <button className="btn-gold" onClick={() => setShowForm(true)}><Plus size={16} /> {t("dispo_add")}</button>
+      </div>
+
+      {players.length === 0 && <p className="muted">{t("no_players_first")}</p>}
+
+      {players.length > 0 && (
+        <div className="panel" style={{ overflowX: "auto" }}>
+          <h3>{t("dispo_calendar_title")}</h3>
+          {upcomingEvents.length === 0 && <p className="muted">{t("no_upcoming_events")}</p>}
+          {upcomingEvents.length > 0 && (
+            <table className="stats-table">
+              <thead>
+                <tr>
+                  <th>{t("th_player")}</th>
+                  {upcomingEvents.map((ev) => {
+                    const Icon = ev.type === "match" ? CalendarDays : Dumbbell;
+                    return (
+                      <th key={ev.id}>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                          <Icon size={12} />
+                          <span className="mono">{formatDate(ev.date).slice(0, 5)}</span>
+                        </div>
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {players.map((p) => (
+                  <tr key={p.id}>
+                    <td>{p.name}</td>
+                    {upcomingEvents.map((ev) => {
+                      const entry = statusForDate(availabilities, p.id, ev.date);
+                      const status = entry?.status || "Disponible";
+                      return (
+                        <td key={ev.id} style={{ textAlign: "center" }}>
+                          <span className="status-dot" style={{ background: STATUS_COLORS[status] }} title={t(AVAILABILITY_KEYS[status])} />
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      <div className="panel">
+        <h3>{t("dispo_history_title")}</h3>
+        {history.length === 0 && <p className="muted">{t("dispo_none")}</p>}
+        {history.length > 0 && (
+          <table className="stats-table">
+            <thead><tr><th>{t("th_player")}</th><th>{t("field_status")}</th><th>{t("field_start_date")}</th><th>{t("field_end_date")}</th><th>{t("field_note")}</th><th /></tr></thead>
+            <tbody>
+              {history.map((a) => {
+                const p = players.find((x) => x.id === a.playerId);
+                return (
+                  <tr key={a.id}>
+                    <td>{p?.name || "—"}</td>
+                    <td><span className="status-chip" style={statusChipStyle(a.status)}>{t(AVAILABILITY_KEYS[a.status])}</span></td>
+                    <td className="mono">{formatDate(a.startDate)}</td>
+                    <td className="mono">{a.endDate ? formatDate(a.endDate) : "—"}</td>
+                    <td className="muted">{a.note || "—"}</td>
+                    <td><button className="icon-btn" onClick={() => remove(a.id)}><Trash2 size={13} /></button></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {showForm && <DispoForm players={players} onSave={save} onClose={() => setShowForm(false)} />}
+    </div>
+  );
+}
