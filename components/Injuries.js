@@ -96,18 +96,23 @@ export function Injuries({ players, injuries, setInjuries, availabilities, setAv
           <div className="panel">
             <h3>{t("injury_by_body_part")}</h3>
             {bodyPartRanking.length === 0 && <p className="muted">{t("no_data_yet")}</p>}
-            {bodyPartRanking.map((r) => (
-              <div key={r.part} className="leaderboard-row">
-                <span style={{ flex: 1 }}>{r.part}</span><span className="mono">{r.count}</span>
+            {bodyPartRanking.map((r, i) => (
+              <div key={r.part} className="rank-card">
+                <span className="rank-card-number">{i + 1}</span>
+                <div className="rank-card-info"><div className="rank-card-name">{r.part}</div></div>
+                <span className="rank-card-value">{r.count}</span>
               </div>
             ))}
           </div>
           <div className="panel">
             <h3>{t("injury_most_affected")}</h3>
             {topPlayers.length === 0 && <p className="muted">{t("no_data_yet")}</p>}
-            {topPlayers.map((r) => (
-              <div key={r.player.id} className="leaderboard-row">
-                <Badge number={r.player.number} size={24} /><span style={{ flex: 1 }}>{r.player.name}</span><span className="mono">{r.count}</span>
+            {topPlayers.map((r, i) => (
+              <div key={r.player.id} className="rank-card">
+                <span className="rank-card-number">{i + 1}</span>
+                <Badge number={r.player.number} size={34} />
+                <div className="rank-card-info"><div className="rank-card-name">{r.player.name}</div></div>
+                <span className="rank-card-value">{r.count}</span>
               </div>
             ))}
           </div>

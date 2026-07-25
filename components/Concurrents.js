@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useLang } from "../lib/i18n";
-import { formatDate, FORMATIONS } from "../lib/shared";
+import { formatDate, FORMATIONS, Badge, Avatar, POSITION_KEYS } from "../lib/shared";
 import { getTeamNames, computeTeamStats, computeMostCommonComposition, computeFormationBreakdown, computeFormationTimeline, computePlayerAssociations, findTeamProfile } from "../lib/leagueHelpers";
 
 const RESULT_KEYS = { W: "result_w", D: "result_d", L: "result_l" };
@@ -8,34 +8,30 @@ const RESULT_COLORS = { W: "var(--gold)", D: "var(--chalk-dim)", L: "var(--red)"
 
 export function Leaderboard({ title, rows, columns, icon: Icon, valueFn }) {
   const { t } = useLang();
+  const valueOf = (r) => {
+    if (valueFn) return valueFn(r);
+    if (columns) return columns.map((c) => `${r[c.key]} ${c.label}`).join(" · ");
+    return "";
+  };
   return (
     <div className="panel">
       <h3>{Icon && <Icon size={14} style={{ marginRight: 6, verticalAlign: -2 }} />}{title}</h3>
       {rows.length === 0 && <p className="muted">{t("no_data_yet")}</p>}
-      {rows.length > 0 && columns && (
-        <table className="stats-table">
-          <thead><tr><th>{t("th_player")}</th>{columns.map((c) => <th key={c.key}>{c.label}</th>)}</tr></thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={r.player + i}>
-                <td>{r.player}</td>
-                {columns.map((c) => <td key={c.key} className="mono">{r[c.key]}</td>)}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      {rows.length > 0 && !columns && (
-        <div>
-          {rows.map((r, i) => (
-            <div key={(r.player?.id || r.player?.name || r.player || "") + i} className="leaderboard-row">
-              <span className="rank">{i + 1}</span>
-              <span style={{ flex: 1 }}>{r.player?.name || r.player}</span>
-              <span className="mono">{valueFn ? valueFn(r) : ""}</span>
+      {rows.map((r, i) => {
+        const isPlayerObj = r.player && typeof r.player === "object";
+        const name = isPlayerObj ? r.player.name : r.player;
+        return (
+          <div key={(isPlayerObj ? r.player.id : r.player) + i} className="rank-card">
+            <span className="rank-card-number">{i + 1}</span>
+            {isPlayerObj ? <Badge number={r.player.number} size={34} /> : <Avatar name={name} size={34} />}
+            <div className="rank-card-info">
+              <div className="rank-card-name">{name}</div>
+              {isPlayerObj && r.player.position && <div className="rank-card-sub">{t(POSITION_KEYS[r.player.position])}</div>}
             </div>
-          ))}
-        </div>
-      )}
+            <span className="rank-card-value" style={{ fontSize: 13 }}>{valueOf(r)}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }

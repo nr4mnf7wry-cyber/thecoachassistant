@@ -187,11 +187,15 @@ export function Dashboard({ players, matches, trainings, availabilities, setView
         <h3>{t("panel_workload_risk")}</h3>
         <p className="muted" style={{ fontSize: 12, marginBottom: 10 }}>{t("workload_help")}</p>
         {workload.length === 0 && <p className="muted">{t("no_workload_data")}</p>}
-        {workload.slice(0, 8).map((w) => (
-          <div key={w.player.id} className="match-row">
-            <Badge number={w.player.number} size={24} /><span>{w.player.name}</span>
+        {workload.slice(0, 8).map((w, i) => (
+          <div key={w.player.id} className="rank-card">
+            <span className="rank-card-number">{i + 1}</span>
+            <Badge number={w.player.number} size={34} />
+            <div className="rank-card-info">
+              <div className="rank-card-name">{w.player.name}</div>
+              <div className="rank-card-sub mono">{t("ratio_label")} {w.ratio}</div>
+            </div>
             <span className="status-chip" style={{ background: ZONE_COLORS[w.zone] }}>{t(ZONE_KEYS[w.zone])}</span>
-            <span className="mono">{w.ratio}</span>
           </div>
         ))}
       </div>

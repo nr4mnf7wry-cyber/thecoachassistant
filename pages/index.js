@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   LayoutDashboard, Users, UserCog, CalendarDays, BarChart3,
-  ShieldHalf, ClipboardCheck, UserCheck, LineChart, Plus, Pencil, Settings, Trophy, Layers, HeartPulse, Radio,
+  ShieldHalf, ClipboardCheck, UserCheck, LineChart, Plus, Pencil, Settings, Trophy, Layers, HeartPulse, Radio, LogOut,
 } from "lucide-react";
 import { useLang } from "../lib/i18n";
 import { useTeamData, Modal, DEFAULT_SEASON, todayStr, isMatchPlayed, isTrainingPlayed } from "../lib/shared";
@@ -96,13 +96,18 @@ function NewSeasonModal({ suggestion, onCreate, onClose }) {
   );
 }
 
-function Sidebar({ view, setView, teamName, setTeamName, seasons, currentSeason, setCurrentSeason, onCreateSeason }) {
+function Sidebar({ view, setView, teamName, setTeamName, seasons, currentSeason, setCurrentSeason, onCreateSeason, currentUser }) {
   const { t, lang, setLang } = useLang();
   const NAV_GROUPS = buildNavGroups(t);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(teamName);
   const [showNewSeason, setShowNewSeason] = useState(false);
   useEffect(() => { setNameDraft(teamName); }, [teamName]);
+
+  const logout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
+  };
 
   return (
     <nav className="sidebar">
@@ -152,6 +157,16 @@ function Sidebar({ view, setView, teamName, setTeamName, seasons, currentSeason,
         ))}
       </div>
 
+      {currentUser && (
+        <div className="account-block">
+          <div className="account-info">
+            <div className="account-name">{currentUser.username}</div>
+            <div className="account-role">{t(currentUser.role === "head" ? "role_head" : "role_assistant")}</div>
+          </div>
+          <button className="icon-btn" onClick={logout}><LogOut size={14} /></button>
+        </div>
+      )}
+
       {showNewSeason && (
         <NewSeasonModal
           suggestion={suggestNextSeason(currentSeason)}
@@ -164,15 +179,49 @@ function Sidebar({ view, setView, teamName, setTeamName, seasons, currentSeason,
 }
 
 export default function App() {
+  const teamData = useTeamData();
   const {
-    players, setPlayers, staff, setStaff, matches, setMatches, trainings, setTrainings,
-    evaluations, setEvaluations, availabilities, setAvailabilities,
-    exerciseLibrary, setExerciseLibrary, bodyMetrics, setBodyMetrics,
-    leagueMatches, setLeagueMatches, opponentProfiles, setOpponentProfiles,
-    injuries, setInjuries, developmentGoals, setDevelopmentGoals, liveSessions, setLiveSessions,
-    teamName, setTeamName, seasons, setSeasons, currentSeason, setCurrentSeason,
+    players, staff, matches, trainings, evaluations, availabilities,
+    exerciseLibrary, bodyMetrics, leagueMatches, opponentProfiles,
+    injuries, developmentGoals, liveSessions, teamName, seasons, currentSeason,
     loaded, saveState, loadError, retryLoad,
-  } = useTeamData();
+  } = teamData;
+
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch("/api/auth/me");
+        const data = await res.json();
+        if (data.authenticated) setCurrentUser(data.user);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setAuthChecked(true);
+      }
+    })();
+  }, []);
+
+  const isReadOnly = currentUser?.role === "assistant";
+  const noop = () => {};
+  const setPlayers = isReadOnly ? noop : teamData.setPlayers;
+  const setStaff = isReadOnly ? noop : teamData.setStaff;
+  const setMatches = isReadOnly ? noop : teamData.setMatches;
+  const setTrainings = isReadOnly ? noop : teamData.setTrainings;
+  const setEvaluations = isReadOnly ? noop : teamData.setEvaluations;
+  const setAvailabilities = isReadOnly ? noop : teamData.setAvailabilities;
+  const setExerciseLibrary = isReadOnly ? noop : teamData.setExerciseLibrary;
+  const setBodyMetrics = isReadOnly ? noop : teamData.setBodyMetrics;
+  const setLeagueMatches = isReadOnly ? noop : teamData.setLeagueMatches;
+  const setOpponentProfiles = isReadOnly ? noop : teamData.setOpponentProfiles;
+  const setInjuries = isReadOnly ? noop : teamData.setInjuries;
+  const setDevelopmentGoals = isReadOnly ? noop : teamData.setDevelopmentGoals;
+  const setLiveSessions = isReadOnly ? noop : teamData.setLiveSessions;
+  const setTeamName = isReadOnly ? noop : teamData.setTeamName;
+  const setSeasons = isReadOnly ? noop : teamData.setSeasons;
+  const setCurrentSeason = isReadOnly ? noop : teamData.setCurrentSeason;
+
   const { t } = useLang();
   const [view, setView] = useState("dashboard");
 
@@ -233,6 +282,7 @@ export default function App() {
   else if (view === "reglages") content = (
     <Reglages
       teamName={teamName}
+      currentUser={currentUser}
       data={{ players, staff, matches, trainings, evaluations, availabilities, exerciseLibrary, bodyMetrics, leagueMatches, opponentProfiles, injuries, developmentGoals, liveSessions, teamName, seasons, currentSeason }}
       setters={{
         setPlayers, setStaff, setMatches, setTrainings, setEvaluations, setAvailabilities,
@@ -275,6 +325,11 @@ export default function App() {
         .lang-btn { flex:1; padding:5px 0; border-radius:6px; border:1px solid var(--pitch-line); background:transparent; color:var(--chalk-dim); font-size:11px; font-weight:600; cursor:pointer; }
         .lang-btn.active { background:var(--gold); border-color:var(--gold); color:var(--on-accent); }
         .nav-list { display:flex; flex-direction:column; }
+        .account-block { display:flex; align-items:center; gap:8px; padding:12px 14px; margin-top:auto; border-top:1px solid var(--pitch-line); }
+        .account-info { flex:1; min-width:0; }
+        .account-name { font-size:12.5px; font-weight:600; color:var(--chalk); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .account-role { font-size:11px; color:var(--chalk-dim); }
+        .readonly-badge { display:inline-flex; align-items:center; padding:4px 10px; border-radius:6px; background:rgba(180,83,7,0.1); border:1px solid rgba(180,83,7,0.25); color:#B45309; font-size:11.5px; font-weight:600; }
         .nav-group-label { font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; color:var(--chalk-dim); padding:8px 12px 4px; }
         .nav-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:6px; background:transparent; border:none; border-left:2px solid transparent; color:var(--chalk-dim); font-family:'Inter',sans-serif; font-size:13.5px; cursor:pointer; text-align:left; width:100%; transition:background-color 0.12s ease, color 0.12s ease; }
         .nav-item:hover { background:rgba(15,23,42,0.05); color:var(--chalk); }
@@ -434,11 +489,13 @@ export default function App() {
         teamName={teamName} setTeamName={setTeamName}
         seasons={seasons} currentSeason={currentSeason} setCurrentSeason={setCurrentSeason}
         onCreateSeason={handleCreateSeason}
+        currentUser={currentUser}
       />
       <div className="main-col">
         <div className="topbar">
           <span className="topbar-title">{pageTitle(view, t)}</span>
           <GlobalSearch players={players} staff={staff} matches={matches} trainings={trainings} leagueMatches={leagueMatches} setView={setView} />
+          {isReadOnly && <span className="readonly-badge">{t("readonly_badge")}</span>}
           <span className="save-status muted mono">
             {saveState === "saving" && t("save_status_saving")}
             {saveState === "error" && t("save_status_error")}

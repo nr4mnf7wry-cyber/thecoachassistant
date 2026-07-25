@@ -1,9 +1,9 @@
-import { useState, useRef } from "react";
-import { Download, Upload } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Download, Upload, Users, UserPlus, Trash2 } from "lucide-react";
 import { useLang } from "../lib/i18n";
 import { todayStr } from "../lib/shared";
 
-export function Reglages({ data, setters, teamName }) {
+export function Reglages({ data, setters, teamName, currentUser }) {
   const { t } = useLang();
   const fileRef = useRef(null);
   const [message, setMessage] = useState(null);
@@ -70,6 +70,8 @@ export function Reglages({ data, setters, teamName }) {
     <div>
       <div className="view-header"><h1>{t("settings_title")}</h1></div>
 
+      {currentUser?.role === "head" && <AccountsPanel />}
+
       <div className="panel">
         <h3><Download size={15} style={{ marginRight: 6, verticalAlign: -2 }} />{t("panel_backup")}</h3>
         <p className="muted" style={{ marginBottom: 14 }}>{t("backup_help")}</p>
@@ -93,6 +95,71 @@ export function Reglages({ data, setters, teamName }) {
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+function AccountsPanel() {
+  const { t } = useLang();
+  const [users, setUsers] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const load = () => {
+    fetch("/api/auth/users").then((r) => r.json()).then((data) => setUsers(data.users || [])).catch(() => setUsers([]));
+  };
+  useEffect(() => { load(); }, []);
+
+  const addAssistant = async (e) => {
+    e.preventDefault();
+    setError("");
+    const res = await fetch("/api/auth/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) { setError(data.error || t("account_error")); return; }
+    setUsername(""); setPassword(""); setShowForm(false);
+    load();
+  };
+
+  const removeUser = async (id) => {
+    if (!confirm(t("confirm_delete_account"))) return;
+    await fetch(`/api/auth/users?id=${id}`, { method: "DELETE" });
+    load();
+  };
+
+  return (
+    <div className="panel">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <h3 style={{ margin: 0 }}><Users size={15} style={{ marginRight: 6, verticalAlign: -2 }} />{t("panel_accounts")}</h3>
+        <button className="btn-gold" onClick={() => setShowForm(!showForm)}><UserPlus size={16} /> {t("add_assistant")}</button>
+      </div>
+      <p className="muted" style={{ marginBottom: 14 }}>{t("accounts_help")}</p>
+
+      {showForm && (
+        <form onSubmit={addAssistant} style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", marginBottom: 16 }}>
+          <label className="muted" style={{ fontSize: 12 }}>{t("field_username")}<input value={username} onChange={(e) => setUsername(e.target.value)} required /></label>
+          <label className="muted" style={{ fontSize: 12 }}>{t("field_password")}<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} /></label>
+          <button type="submit" className="btn-gold">{t("common_add")}</button>
+        </form>
+      )}
+      {error && <p className="mono" style={{ color: "var(--red)", fontSize: 12.5, marginBottom: 12 }}>{error}</p>}
+
+      {users === null && <p className="muted">…</p>}
+      {users && users.length === 0 && <p className="muted">{t("no_data_yet")}</p>}
+      {users && users.map((u) => (
+        <div key={u.id} className="match-row">
+          <span>{u.username}</span>
+          <span className="status-chip" style={{ background: u.role === "head" ? "var(--gold)" : "var(--chalk-dim)" }}>
+            {t(u.role === "head" ? "role_head" : "role_assistant")}
+          </span>
+          {u.role !== "head" && <button className="icon-btn" onClick={() => removeUser(u.id)}><Trash2 size={13} /></button>}
+        </div>
+      ))}
     </div>
   );
 }
