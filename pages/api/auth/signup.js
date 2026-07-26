@@ -5,7 +5,17 @@ export default async function handler(req, res) {
   if (req.method !== "POST") { res.status(405).end(); return; }
   try {
     await migrateLegacyIfNeeded();
-    const { teamName, username, password } = req.body || {};
+    const { teamName, username, password, accessCode } = req.body || {};
+
+    if (!process.env.SIGNUP_CODE) {
+      res.status(503).json({ error: "Les inscriptions ne sont pas encore ouvertes." });
+      return;
+    }
+    if (!accessCode || accessCode !== process.env.SIGNUP_CODE) {
+      res.status(403).json({ error: "Code d'accès incorrect." });
+      return;
+    }
+
     const cleanTeamName = String(teamName || "").trim();
     const cleanUsername = String(username || "").trim();
     if (!cleanTeamName || !cleanUsername || !password || password.length < 8) {

@@ -1,11 +1,17 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, ChevronLeft, Minus, Play, Pause, FileText } from "lucide-react";
+import { Plus, Trash2, ChevronLeft, Minus, Play, Pause, FileText, Target, AlertTriangle, RefreshCw, ShieldCheck, X, TrendingUp, TrendingDown, ThumbsUp, ThumbsDown, RectangleVertical } from "lucide-react";
 import { useLang } from "../lib/i18n";
 import {
   uid, Badge, formatDate, LIVE_ZONES, LIVE_TEAM_TAGS, LIVE_PLAYER_TAGS, LIVE_TAG_COLORS,
   newLiveSession, emptyLiveClock, currentLiveSeconds, formatLiveClock, computeLiveReport, GOAL_TYPE_GROUPS,
 } from "../lib/shared";
 import { CategoryList } from "./Concurrents";
+
+const LIVE_TAG_ICONS = {
+  goal: Target, danger: AlertTriangle, turnover: RefreshCw, recovery: ShieldCheck, error: X,
+  duel_won: TrendingUp, duel_lost: TrendingDown, strength: ThumbsUp, weakness: ThumbsDown,
+  yellow_card: RectangleVertical, red_card: RectangleVertical,
+};
 
 const ZONE_LABEL_KEYS = Object.fromEntries(LIVE_ZONES.map((z) => [z, `zone_${z}`]));
 const TAG_LABEL_KEYS = Object.fromEntries([...LIVE_TEAM_TAGS, ...LIVE_PLAYER_TAGS].map((tg) => [tg, `livetag_${tg}`]));
@@ -252,14 +258,18 @@ export function LiveCaptureCore({
       <div className="panel" style={{ overflowX: "auto" }}>
         <h3>{t("live_feed_title")}</h3>
         {events.length === 0 && <p className="muted">{t("live_feed_none")}</p>}
-        {[...events].reverse().map((e) => (
-          <div key={e.id} className="match-row">
-            <span className="mono muted">{formatLiveClock(e.atSeconds || 0)}</span>
-            <span className="status-chip" style={{ background: LIVE_TAG_COLORS[e.tag] }}>{t(TAG_LABEL_KEYS[e.tag])}</span>
-            <span>{e.team === "own" ? ourLabel : theirLabel} · {t(ZONE_LABEL_KEYS[e.zone])}{e.goalType ? ` · ${e.goalType}` : ""}{e.player ? ` · ${e.player}` : ""}</span>
-            <button className="icon-btn" onClick={() => removeEvent(e.id)}><Trash2 size={13} /></button>
-          </div>
-        ))}
+        {[...events].reverse().map((e) => {
+          const TagIcon = LIVE_TAG_ICONS[e.tag];
+          return (
+            <div key={e.id} className="match-row">
+              <span className="mono muted">{formatLiveClock(e.atSeconds || 0)}</span>
+              <span className="live-feed-icon" style={{ background: LIVE_TAG_COLORS[e.tag] }}>{TagIcon && <TagIcon size={12} color="#fff" />}</span>
+              <span className="status-chip" style={{ background: LIVE_TAG_COLORS[e.tag] }}>{t(TAG_LABEL_KEYS[e.tag])}</span>
+              <span>{e.team === "own" ? ourLabel : theirLabel} · {t(ZONE_LABEL_KEYS[e.zone])}{e.goalType ? ` · ${e.goalType}` : ""}{e.player ? ` · ${e.player}` : ""}</span>
+              <button className="icon-btn" onClick={() => removeEvent(e.id)}><Trash2 size={13} /></button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

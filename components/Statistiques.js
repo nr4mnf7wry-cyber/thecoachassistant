@@ -3,9 +3,21 @@ import { Target, Handshake, Award, BarChart3, ClipboardCheck, Gauge, Wind, Users
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line } from "recharts";
 import { useLang } from "../lib/i18n";
 import {
-  Badge, MetricCard, aggregateMatches, aggregateTrainings, latestCardio,
+  Badge, MetricCard, aggregateMatches, aggregateTrainings, latestCardio, isMatchPlayed,
   POSITIONS, POSITION_KEYS, latestEvaluationBySource, overallAvg,
 } from "../lib/shared";
+
+function TrendPill({ current, previous }) {
+  if (previous === null || previous === undefined) return null;
+  const delta = current - previous;
+  if (delta === 0) return null;
+  const up = delta > 0;
+  return (
+    <span className={"trend-pill " + (up ? "trend-up" : "trend-down")}>
+      {up ? "▲" : "▼"} {up ? "+" : ""}{delta}
+    </span>
+  );
+}
 
 export function Statistiques({ players, matches, trainings, evaluations }) {
   const { t } = useLang();
@@ -13,6 +25,15 @@ export function Statistiques({ players, matches, trainings, evaluations }) {
   const agg = useMemo(() => aggregateMatches(players, matches), [players, matches]);
   const attendanceAgg = useMemo(() => aggregateTrainings(players, trainings), [players, trainings]);
   const totalButs = agg.reduce((s, a) => s + a.buts, 0);
+  const goalsTrend = useMemo(() => {
+    const played = [...matches].filter(isMatchPlayed).sort((a, b) => (a.date > b.date ? 1 : -1));
+    if (played.length < 2) return null;
+    const last5 = played.slice(-5);
+    const prev5 = played.slice(-10, -5);
+    if (prev5.length === 0) return null;
+    const sum = (arr) => arr.reduce((s, m) => s + (Number(m.scoreFor) || 0), 0);
+    return { current: sum(last5), previous: sum(prev5) };
+  }, [matches]);
   const topScorerCard = [...agg].sort((a, b) => b.buts - a.buts)[0];
   const notedPlayers = agg.filter((a) => a.avgNote !== null);
   const bestAvgCard = notedPlayers.length ? [...notedPlayers].sort((a, b) => b.avgNote - a.avgNote)[0] : null;
@@ -84,7 +105,7 @@ export function Statistiques({ players, matches, trainings, evaluations }) {
         <>
           <div className="metric-grid">
             <MetricCard label={t("metric_matches_played")} value={matches.length} icon={CalendarDays} />
-            <MetricCard label={t("metric_goals_scored")} value={totalButs} icon={Target} />
+            <MetricCard label={t("metric_goals_scored")} value={totalButs} icon={Target} trend={goalsTrend && <TrendPill current={goalsTrend.current} previous={goalsTrend.previous} />} />
             <MetricCard label={t("metric_top_scorer")} value={topScorerCard && topScorerCard.buts > 0 ? `${topScorerCard.player.name} (${topScorerCard.buts})` : "—"} icon={Award} />
             <MetricCard label={t("metric_best_avg")} value={bestAvgCard ? `${bestAvgCard.player.name} (${bestAvgCard.avgNote})` : "—"} icon={BarChart3} />
           </div>

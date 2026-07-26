@@ -9,6 +9,7 @@ export default function Login() {
   const [teamName, setTeamName] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [accessCode, setAccessCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -19,7 +20,7 @@ export default function Login() {
     setLoading(true);
     try {
       const endpoint = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
-      const body = mode === "signup" ? { teamName, username, password } : { username, password };
+      const body = mode === "signup" ? { teamName, username, password, accessCode } : { username, password };
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -61,6 +62,13 @@ export default function Login() {
               type="text" autoFocus value={teamName}
               onChange={(e) => setTeamName(e.target.value)}
               placeholder={t("team_name_placeholder")}
+              style={styles.input}
+            />
+            <label style={styles.label}>{t("field_access_code")}</label>
+            <input
+              type="text" value={accessCode}
+              onChange={(e) => setAccessCode(e.target.value)}
+              placeholder={t("access_code_placeholder")}
               style={styles.input}
             />
           </>

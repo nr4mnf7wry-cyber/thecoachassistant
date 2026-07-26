@@ -1,11 +1,15 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, ChevronLeft, Save, Gauge, Pencil, UserCheck } from "lucide-react";
+import { Plus, Trash2, ChevronLeft, Save, Gauge, Pencil, UserCheck, Zap, Dumbbell, Compass, ArrowLeftRight, Crosshair } from "lucide-react";
 import { useLang } from "../lib/i18n";
 import {
   uid, Badge, Modal, MetricCard,
   EXERCISE_CATEGORIES, EXERCISE_CATEGORY_KEYS, emptyAttendance, emptyExercise, aggregateTrainings,
   isPlayerUnavailable, DEFAULT_SEASON, addDaysToDateStr, formatDate, DateField, useSelection, clamp,
 } from "../lib/shared";
+
+const EXERCISE_CATEGORY_ICONS = {
+  Technique: Zap, Physique: Dumbbell, Tactique: Compass, Transitions: ArrowLeftRight, Finition: Crosshair,
+};
 
 const STATUSES = ["Présent", "Absent", "Blessé"];
 const STATUS_LABEL_KEYS = { "Présent": "status_present", "Absent": "status_absent", "Blessé": "status_blessé" };
@@ -83,14 +87,18 @@ function LibraryPicker({ exerciseLibrary, onPick, onClose }) {
     <Modal title={t("exercise_add_from_library")} onClose={onClose}>
       {exerciseLibrary.length === 0 && <p className="muted">{t("no_exercises_yet")}</p>}
       <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 320, overflowY: "auto" }}>
-        {exerciseLibrary.map((ex) => (
-          <button key={ex.id} className="player-row-card" style={{ width: "100%", border: "1px solid var(--pitch-line)", borderRadius: 8, cursor: "pointer" }} onClick={() => onPick(ex)}>
-            <div>
-              <div className="player-name">{ex.name}</div>
-              <div className="muted">{t(EXERCISE_CATEGORY_KEYS[ex.category])} · {ex.duration || "—"} min · RPE {ex.rpe || "—"}</div>
-            </div>
-          </button>
-        ))}
+        {exerciseLibrary.map((ex) => {
+          const CatIcon = EXERCISE_CATEGORY_ICONS[ex.category];
+          return (
+            <button key={ex.id} className="player-row-card" style={{ width: "100%", border: "1px solid var(--pitch-line)", borderRadius: 8, cursor: "pointer" }} onClick={() => onPick(ex)}>
+              <div className="exercise-cat-icon">{CatIcon && <CatIcon size={15} />}</div>
+              <div>
+                <div className="player-name">{ex.name}</div>
+                <div className="muted">{t(EXERCISE_CATEGORY_KEYS[ex.category])} · {ex.duration || "—"} min · RPE {ex.rpe || "—"}</div>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </Modal>
   );
@@ -282,16 +290,19 @@ export function EntrainementDetail({ trainingId, players, trainings, setTraining
           <table className="stats-table">
             <thead><tr><th>{t("field_exercise_name")}</th><th>{t("field_category")}</th><th>{t("field_duration_min")}</th><th>{t("th_rpe")}</th><th>Load</th><th /></tr></thead>
             <tbody>
-              {exercises.map((ex) => (
+              {exercises.map((ex) => {
+                const CatIcon = EXERCISE_CATEGORY_ICONS[ex.category];
+                return (
                 <tr key={ex.id}>
                   <td>{ex.name}</td>
-                  <td>{t(EXERCISE_CATEGORY_KEYS[ex.category])}</td>
+                  <td>{CatIcon && <CatIcon size={13} style={{ marginRight: 5, verticalAlign: -2, color: "var(--chalk-dim)" }} />}{t(EXERCISE_CATEGORY_KEYS[ex.category])}</td>
                   <td className="mono">{ex.duration || "—"}</td>
                   <td className="mono">{ex.rpe || "—"}</td>
                   <td className="mono">{(Number(ex.duration) || 0) * (Number(ex.rpe) || 0)}</td>
                   <td><button className="icon-btn" onClick={() => removeExercise(ex.id)}><Trash2 size={13} /></button></td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         )}

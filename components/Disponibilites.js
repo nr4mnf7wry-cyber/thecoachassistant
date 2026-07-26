@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Trash2, Dumbbell, CalendarDays } from "lucide-react";
+import { Plus, Trash2, Dumbbell, CalendarDays, ChevronLeft, ChevronRight, List, Grid3x3 } from "lucide-react";
 import { useLang } from "../lib/i18n";
 import { uid, Modal, DateField, UNAVAILABILITY_STATUSES, AVAILABILITY_KEYS, todayStr, formatDate, addDaysToDateStr } from "../lib/shared";
 
@@ -66,9 +66,73 @@ function DispoForm({ players, onSave, onClose }) {
   );
 }
 
+function MonthCalendar({ players, availabilities }) {
+  const { t } = useLang();
+  const [monthOffset, setMonthOffset] = useState(0);
+
+  const base = new Date();
+  base.setDate(1);
+  base.setMonth(base.getMonth() + monthOffset);
+  const year = base.getFullYear();
+  const month = base.getMonth();
+  const monthLabel = base.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+
+  const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7; // lundi = 0
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const pad = (n) => String(n).padStart(2, "0");
+  const dateStr = (d) => `${year}-${pad(month + 1)}-${pad(d)}`;
+
+  const affectedByDay = useMemo(() => {
+    const map = {};
+    for (let d = 1; d <= daysInMonth; d++) {
+      const ds = dateStr(d);
+      map[d] = availabilities.filter((a) => ds >= a.startDate && ds <= (a.endDate || a.startDate));
+    }
+    return map;
+  }, [availabilities, year, month]);
+
+  const cells = [];
+  for (let i = 0; i < firstWeekday; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <button className="icon-btn" onClick={() => setMonthOffset(monthOffset - 1)}><ChevronLeft size={15} /></button>
+        <span style={{ fontWeight: 600, fontSize: 13.5, textTransform: "capitalize" }}>{monthLabel}</span>
+        <button className="icon-btn" onClick={() => setMonthOffset(monthOffset + 1)}><ChevronRight size={15} /></button>
+      </div>
+      <div className="cal-grid cal-grid-head">
+        {[t("cal_mon"), t("cal_tue"), t("cal_wed"), t("cal_thu"), t("cal_fri"), t("cal_sat"), t("cal_sun")].map((d) => (
+          <div key={d} className="cal-weekday">{d}</div>
+        ))}
+      </div>
+      <div className="cal-grid">
+        {cells.map((d, i) => {
+          if (!d) return <div key={"pad" + i} className="cal-cell cal-cell-empty" />;
+          const affected = affectedByDay[d] || [];
+          const isToday = dateStr(d) === todayStr();
+          return (
+            <div key={d} className={"cal-cell" + (isToday ? " cal-cell-today" : "")}>
+              <span className="cal-day-num">{d}</span>
+              <div className="cal-dots">
+                {affected.slice(0, 4).map((a) => (
+                  <span key={a.id} className="cal-dot" style={{ background: STATUS_COLORS[a.status] }} title={`${players.find((p) => p.id === a.playerId)?.name || "?"} · ${t(AVAILABILITY_KEYS[a.status])}`} />
+                ))}
+                {affected.length > 4 && <span className="cal-dot-more">+{affected.length - 4}</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function Disponibilites({ players, availabilities, setAvailabilities, matches, trainings }) {
   const { t } = useLang();
   const [showForm, setShowForm] = useState(false);
+  const [historyMode, setHistoryMode] = useState("list");
   const upcomingEvents = useMemo(() => getUpcomingEvents(matches, trainings), [matches, trainings]);
   const history = [...availabilities].sort((a, b) => (a.startDate < b.startDate ? 1 : -1)).slice(0, 40);
 
@@ -128,27 +192,38 @@ export function Disponibilites({ players, availabilities, setAvailabilities, mat
       )}
 
       <div className="panel">
-        <h3>{t("dispo_history_title")}</h3>
-        {history.length === 0 && <p className="muted">{t("dispo_none")}</p>}
-        {history.length > 0 && (
-          <table className="stats-table">
-            <thead><tr><th>{t("th_player")}</th><th>{t("field_status")}</th><th>{t("field_start_date")}</th><th>{t("field_end_date")}</th><th>{t("field_note")}</th><th /></tr></thead>
-            <tbody>
-              {history.map((a) => {
-                const p = players.find((x) => x.id === a.playerId);
-                return (
-                  <tr key={a.id}>
-                    <td>{p?.name || "—"}</td>
-                    <td><span className="status-chip" style={statusChipStyle(a.status)}>{t(AVAILABILITY_KEYS[a.status])}</span></td>
-                    <td className="mono">{formatDate(a.startDate)}</td>
-                    <td className="mono">{a.endDate ? formatDate(a.endDate) : "—"}</td>
-                    <td className="muted">{a.note || "—"}</td>
-                    <td><button className="icon-btn" onClick={() => remove(a.id)}><Trash2 size={13} /></button></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <h3 style={{ margin: 0 }}>{t("dispo_history_title")}</h3>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button className={"icon-btn" + (historyMode === "list" ? " active" : "")} onClick={() => setHistoryMode("list")}><List size={14} /></button>
+            <button className={"icon-btn" + (historyMode === "calendar" ? " active" : "")} onClick={() => setHistoryMode("calendar")}><Grid3x3 size={14} /></button>
+          </div>
+        </div>
+        {historyMode === "calendar" && <MonthCalendar players={players} availabilities={availabilities} />}
+        {historyMode === "list" && (
+          <>
+            {history.length === 0 && <p className="muted">{t("dispo_none")}</p>}
+            {history.length > 0 && (
+              <table className="stats-table">
+                <thead><tr><th>{t("th_player")}</th><th>{t("field_status")}</th><th>{t("field_start_date")}</th><th>{t("field_end_date")}</th><th>{t("field_note")}</th><th /></tr></thead>
+                <tbody>
+                  {history.map((a) => {
+                    const p = players.find((x) => x.id === a.playerId);
+                    return (
+                      <tr key={a.id}>
+                        <td>{p?.name || "—"}</td>
+                        <td><span className="status-chip" style={statusChipStyle(a.status)}>{t(AVAILABILITY_KEYS[a.status])}</span></td>
+                        <td className="mono">{formatDate(a.startDate)}</td>
+                        <td className="mono">{a.endDate ? formatDate(a.endDate) : "—"}</td>
+                        <td className="muted">{a.note || "—"}</td>
+                        <td><button className="icon-btn" onClick={() => remove(a.id)}><Trash2 size={13} /></button></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </>
         )}
       </div>
 

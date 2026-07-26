@@ -169,32 +169,40 @@ export function FicheJoueur({ playerId, players, setPlayers, matches, trainings,
   return (
     <div>
       <button className="back-link" onClick={() => setView("effectif")}><ChevronLeft size={16} /> {t("fiche_back")}</button>
-      <div className="view-header">
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <Badge number={player.number} size={52} />
-          <div>
-            <h1 style={{ marginBottom: 2, display: "flex", alignItems: "center", gap: 10 }}>
-              {player.name}
-              {player.status === "invite" && <span className="status-chip" style={{ background: "var(--chalk-dim)", fontSize: 11 }}>{t("badge_guest")}</span>}
-            </h1>
-            <p className="muted">
-              {player.position ? t(POSITION_KEYS[player.position]) : t("position_not_set")}
-              {player.specificite ? ` (${player.specificite})` : ""}
-              {player.secondaryPositions?.length ? ` · ${player.secondaryPositions.map((p) => t(POSITION_KEYS[p])).join(", ")}` : ""}
-              {player.strongFoot ? ` · ${t(FOOT_KEYS[player.strongFoot])}` : ""}
-              {player.height ? ` · ${player.height} cm` : ""}
-              {player.weight ? ` · ${player.weight} kg` : ""}
-              {player.birthDate ? ` · ${t("born_on")} ${formatDate(player.birthDate)}` : ""}
-            </p>
+
+      <div className="panel player-identity-card">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <Badge number={player.number} size={64} />
+            <div>
+              <h1 style={{ marginBottom: 2, display: "flex", alignItems: "center", gap: 10 }}>
+                {player.name}
+                {player.status === "invite" && <span className="status-chip" style={{ background: "var(--chalk-dim)", fontSize: 11 }}>{t("badge_guest")}</span>}
+              </h1>
+              <p className="muted">
+                {player.position ? t(POSITION_KEYS[player.position]) : t("position_not_set")}
+                {player.specificite ? ` (${player.specificite})` : ""}
+                {player.secondaryPositions?.length ? ` · ${player.secondaryPositions.map((p) => t(POSITION_KEYS[p])).join(", ")}` : ""}
+                {player.strongFoot ? ` · ${t(FOOT_KEYS[player.strongFoot])}` : ""}
+                {player.height ? ` · ${player.height} cm` : ""}
+                {player.weight ? ` · ${player.weight} kg` : ""}
+                {player.birthDate ? ` · ${t("born_on")} ${formatDate(player.birthDate)}` : ""}
+              </p>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            {player.status === "invite" && (
+              <button className="icon-btn" onClick={() => { if (confirm(t("confirm_promote"))) setPlayers(players.map((p) => (p.id === player.id ? { ...p, status: "titulaire" } : p))); }}>
+                {t("action_promote")}
+              </button>
+            )}
+            <button className="icon-btn" onClick={() => setShowEdit(true)}><Pencil size={16} /></button>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          {player.status === "invite" && (
-            <button className="icon-btn" onClick={() => { if (confirm(t("confirm_promote"))) setPlayers(players.map((p) => (p.id === player.id ? { ...p, status: "titulaire" } : p))); }}>
-              {t("action_promote")}
-            </button>
-          )}
-          <button className="icon-btn" onClick={() => setShowEdit(true)}><Pencil size={16} /></button>
+        <div className="player-identity-stats">
+          <div className="player-identity-stat"><span className="player-identity-stat-value">{agg?.matchesPresent ?? 0}</span><span className="player-identity-stat-label">{t("metric_matches_played")}</span></div>
+          <div className="player-identity-stat"><span className="player-identity-stat-value">{agg?.buts ?? 0}</span><span className="player-identity-stat-label">{t("metric_goals")}</span></div>
+          <div className="player-identity-stat"><span className="player-identity-stat-value">{lastCoachEval ? (overallAvg(lastCoachEval.scores) ?? "—") : "—"}</span><span className="player-identity-stat-label">{t("metric_general_note")}</span></div>
         </div>
       </div>
 

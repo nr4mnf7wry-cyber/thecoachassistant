@@ -2,13 +2,14 @@ import { useState, useMemo, useEffect } from "react";
 import { Plus, Trash2, Save, Users } from "lucide-react";
 import { useLang } from "../../lib/i18n";
 import {
-  Badge, MetricCard, Modal, POSITIONS, POSITION_KEYS,
+  Badge, MetricCard, EmptyState, Modal, POSITIONS, POSITION_KEYS,
   aggregateMatches, aggregateTrainings, latestCardio, computeAge,
   overallAvg, latestEvaluationBySource, compareValues, useSortState, aggregatePositionCounts,
 } from "../../lib/shared";
 import { PlayerBulkForm } from "./PlayerForms";
 
 const DEFAULT_COLUMNS = ["name", "position", "age", "goals", "assists", "yellowCards", "redCards", "generalNote", "lastVma", "minutes", "nbMatches", "nbTrainings"];
+const DEFAULT_VISIBLE = ["name", "position", "age", "nbMatches", "goals"];
 const COLUMNS_STORAGE_KEY = "effectif_columns_v1";
 
 const columnLabels = (t) => ({
@@ -64,7 +65,8 @@ export function Effectif({
   const { sort, toggleSort, sortArrow } = useSortState("name");
   const positionCounts = useMemo(() => aggregatePositionCounts(players), [players]);
   const [columns, setColumns] = useState(DEFAULT_COLUMNS);
-  const [hiddenCols, setHiddenCols] = useState([]);
+  const [hiddenCols, setHiddenCols] = useState(DEFAULT_COLUMNS.filter((c) => !DEFAULT_VISIBLE.includes(c)));
+  const [groupByPosition, setGroupByPosition] = useState(true);
 
   useEffect(() => {
     try {
@@ -145,8 +147,8 @@ export function Effectif({
   const labels = columnLabels(t);
   const columnCell = (key, p, r) => {
     if (key === "name") return (
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <Badge number={p.number} size={28} /><span className="player-name">{p.name}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <Badge number={p.number} size={34} /><span className="player-name">{p.name}</span>
         {p.status === "invite" && <span className="status-chip" style={{ background: "var(--chalk-dim)" }}>{t("badge_guest")}</span>}
       </div>
     );
@@ -164,11 +166,21 @@ export function Effectif({
     return "—";
   };
 
+  const groupedRows = useMemo(() => {
+    if (!groupByPosition) return [{ position: null, rows }];
+    const groups = [...POSITIONS, ""].map((pos) => ({
+      position: pos,
+      rows: rows.filter(({ player: p }) => (p.position || "") === pos),
+    })).filter((g) => g.rows.length > 0);
+    return groups;
+  }, [rows, groupByPosition]);
+
   return (
     <div>
       <div className="view-header">
         <h1>{t("effectif_title")}</h1>
         <div style={{ display: "flex", gap: 8 }}>
+          <button className={"icon-btn" + (groupByPosition ? " active" : "")} onClick={() => setGroupByPosition(!groupByPosition)}>{t("effectif_group_by_position")}</button>
           <button className="icon-btn" onClick={() => setShowColumns(true)}>{t("columns_customize")}</button>
           <button className="btn-gold" onClick={() => setShowBulk(true)}><Plus size={16} /> {t("effectif_add")}</button>
         </div>
@@ -183,11 +195,19 @@ export function Effectif({
         </div>
       </div>
 
-      {players.length === 0 && <p className="muted">{t("effectif_none")}</p>}
+      {players.length === 0 && (
+        <EmptyState
+          icon={Users}
+          title={t("effectif_empty_title")}
+          help={t("effectif_empty_help")}
+          actionLabel={t("effectif_add")}
+          onAction={() => setShowBulk(true)}
+        />
+      )}
 
       {players.length > 0 && (
         <div className="panel" style={{ overflowX: "auto" }}>
-          <table className="stats-table">
+          <table className="stats-table effectif-table">
             <thead>
               <tr>
                 {visibleColumns.map((key) => (
@@ -196,18 +216,25 @@ export function Effectif({
                 <th />
               </tr>
             </thead>
-            <tbody>
-              {rows.map(({ player: p, r }) => (
-                <tr key={p.id}>
-                  {visibleColumns.map((key) => (
-                    <td key={key} className={key === "name" ? "" : "mono"} onClick={key === "name" ? () => setView("joueur:" + p.id) : undefined} style={key === "name" ? { cursor: "pointer" } : undefined}>
-                      {columnCell(key, p, r)}
-                    </td>
-                  ))}
-                  <td><button className="icon-btn" onClick={() => removePlayer(p)}><Trash2 size={14} /></button></td>
-                </tr>
-              ))}
-            </tbody>
+            {groupedRows.map((group) => (
+              <tbody key={group.position ?? "all"}>
+                {groupByPosition && (
+                  <tr className="table-group-row">
+                    <td colSpan={visibleColumns.length + 1}>{group.position ? t(POSITION_KEYS[group.position]) : t("column_no_position")}</td>
+                  </tr>
+                )}
+                {group.rows.map(({ player: p, r }) => (
+                  <tr key={p.id} className="hover-reveal-row">
+                    {visibleColumns.map((key) => (
+                      <td key={key} className={key === "name" ? "" : "mono"} onClick={key === "name" ? () => setView("joueur:" + p.id) : undefined} style={key === "name" ? { cursor: "pointer" } : undefined}>
+                        {columnCell(key, p, r)}
+                      </td>
+                    ))}
+                    <td><button className="icon-btn hover-reveal" onClick={() => removePlayer(p)}><Trash2 size={14} /></button></td>
+                  </tr>
+                ))}
+              </tbody>
+            ))}
           </table>
         </div>
       )}

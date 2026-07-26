@@ -1,5 +1,5 @@
-import { useState, useRef, useMemo } from "react";
-import { Plus, Trash2, Pencil, ChevronLeft, Upload, Download, Save } from "lucide-react";
+import { useState, useRef, useMemo, useEffect } from "react";
+import { Plus, Trash2, Pencil, ChevronLeft, ChevronDown, Upload, Download, Save } from "lucide-react";
 import { useLang } from "../lib/i18n";
 import * as XLSX from "xlsx";
 import { Modal, DateField, formatDate, POSITIONS, POSITION_KEYS, GOAL_TYPE_GROUPS, FORMATIONS, formationSlotCount, Badge, uid } from "../lib/shared";
@@ -91,6 +91,17 @@ export function CompetitionList({ leagueMatches, setLeagueMatches, setView }) {
       });
   }, [leagueMatches]);
 
+  const [collapsed, setCollapsed] = useState(null);
+  useEffect(() => {
+    if (collapsed !== null) return;
+    setCollapsed(new Set(groups.slice(0, -2).map((g) => g.label)));
+  }, [groups, collapsed]);
+  const toggleGroup = (label) => {
+    const next = new Set(collapsed);
+    if (next.has(label)) next.delete(label); else next.add(label);
+    setCollapsed(next);
+  };
+
   return (
     <div>
       <div className="view-header">
@@ -113,21 +124,26 @@ export function CompetitionList({ leagueMatches, setLeagueMatches, setView }) {
 
       {groups.length === 0 && <p className="muted">{t("journee_none")}</p>}
 
-      {groups.map((g) => (
-        <div key={g.label || "none"} className="panel" style={{ padding: 0 }}>
-          <div style={{ padding: "14px 20px 0" }}>
-            <h3>{g.label || t("journee_no_label")}</h3>
-          </div>
-          {g.matches.map((m) => (
-            <div key={m.id} className="match-list-row" style={{ gridTemplateColumns: "100px 1fr 100px 32px" }}>
-              <span className="mono muted" style={{ cursor: "pointer" }} onClick={() => setView("competition:" + m.id)}>{formatDate(m.date)}</span>
-              <span style={{ cursor: "pointer" }} onClick={() => setView("competition:" + m.id)}>{m.homeTeam} — {m.awayTeam}</span>
-              <span className="mono" style={{ cursor: "pointer" }} onClick={() => setView("competition:" + m.id)}>{m.homeScore !== "" ? m.homeScore : "–"}-{m.awayScore !== "" ? m.awayScore : "–"}</span>
-              <button className="icon-btn" onClick={() => removeMatch(m.id)}><Trash2 size={13} /></button>
+      {groups.map((g) => {
+        const isCollapsed = collapsed?.has(g.label);
+        return (
+          <div key={g.label || "none"} className="panel" style={{ padding: 0 }}>
+            <div className="journee-header" onClick={() => toggleGroup(g.label)}>
+              <ChevronDown size={15} style={{ transform: isCollapsed ? "rotate(-90deg)" : "none", transition: "transform 0.12s ease" }} />
+              <h3 style={{ margin: 0, flex: 1 }}>{g.label || t("journee_no_label")}</h3>
+              <span className="muted mono" style={{ fontSize: 12 }}>{g.matches.length} {t("journee_match_count")}</span>
             </div>
-          ))}
-        </div>
-      ))}
+            {!isCollapsed && g.matches.map((m) => (
+              <div key={m.id} className="match-list-row" style={{ gridTemplateColumns: "100px 1fr 100px 32px" }}>
+                <span className="mono muted" style={{ cursor: "pointer" }} onClick={() => setView("competition:" + m.id)}>{formatDate(m.date)}</span>
+                <span style={{ cursor: "pointer" }} onClick={() => setView("competition:" + m.id)}>{m.homeTeam} — {m.awayTeam}</span>
+                <span className="mono" style={{ cursor: "pointer" }} onClick={() => setView("competition:" + m.id)}>{m.homeScore !== "" ? m.homeScore : "–"}-{m.awayScore !== "" ? m.awayScore : "–"}</span>
+                <button className="icon-btn" onClick={() => removeMatch(m.id)}><Trash2 size={13} /></button>
+              </div>
+            ))}
+          </div>
+        );
+      })}
 
       <div className="panel">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: showManage ? 14 : 0 }}>
