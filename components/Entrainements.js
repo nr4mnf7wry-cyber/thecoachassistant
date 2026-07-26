@@ -162,8 +162,9 @@ export function Entrainements({ players, trainings, setTrainings, availabilities
       {sorted.length === 0 && <p className="muted">{t("entr_none")}</p>}
       <div className="panel" style={{ padding: 0 }}>
         {sorted.map((t2) => {
-          const presentCount = players.filter((p) => t2.attendance?.[p.id]?.present).length;
-          const trackedCount = Object.keys(t2.attendance || {}).length;
+          const trackedPlayers = players.filter((p) => (p.status || "titulaire") !== "invite" || t2.attendance?.[p.id]);
+          const presentCount = trackedPlayers.filter((p) => (t2.attendance?.[p.id]?.present ?? true)).length;
+          const trackedCount = trackedPlayers.length;
           return (
             <div key={t2.id} className="match-list-row" style={{ gridTemplateColumns: "24px 100px 1fr 140px 32px" }}>
               <input type="checkbox" checked={selected.includes(t2.id)} onChange={(e) => { e.stopPropagation(); toggleSelect(t2.id); }} onClick={(e) => e.stopPropagation()} />
