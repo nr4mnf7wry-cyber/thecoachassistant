@@ -41,8 +41,8 @@ export function Dashboard({ players, matches, trainings, availabilities, setView
 
   const upcomingEvents = useMemo(() => {
     const inWindow = (d) => d >= today;
-    const trainingEvents = (trainings || []).filter((tr) => inWindow(tr.date)).map((tr) => ({ id: "t-" + tr.id, type: "training", date: tr.date, label: tr.objective || t("entr_detail_default_title") }));
-    const matchEvents = (matches || []).filter((m) => inWindow(m.date)).map((m) => ({ id: "m-" + m.id, type: "match", date: m.date, label: `${t("nav_matchs")} vs ${m.opponent}` }));
+    const trainingEvents = (trainings || []).filter((tr) => inWindow(tr.date)).map((tr) => ({ id: "t-" + tr.id, type: "training", date: tr.date, label: tr.objective || t("entr_detail_default_title"), raw: tr }));
+    const matchEvents = (matches || []).filter((m) => inWindow(m.date)).map((m) => ({ id: "m-" + m.id, type: "match", date: m.date, label: `${t("nav_matchs")} vs ${m.opponent}`, raw: m }));
     return [...trainingEvents, ...matchEvents].sort((a, b) => (a.date > b.date ? 1 : -1));
   }, [trainings, matches, today, t]);
 
@@ -113,7 +113,9 @@ export function Dashboard({ players, matches, trainings, availabilities, setView
             <div className="timeline-track">
               <div className="timeline-line" />
               {upcomingEvents.map((ev) => {
-                const availableCount = players.filter((p) => !isPlayerUnavailable(availabilities, p.id, ev.date)).length;
+                const availableCount = ev.type === "training"
+                  ? players.filter((p) => (ev.raw.attendance?.[p.id]?.present ?? true)).length
+                  : players.filter((p) => !isPlayerUnavailable(availabilities, p.id, ev.date)).length;
                 const Icon = ev.type === "match" ? CalendarDays : Dumbbell;
                 const short = `${ev.date.slice(8, 10)}/${ev.date.slice(5, 7)}`;
                 return (
