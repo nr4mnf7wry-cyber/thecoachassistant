@@ -105,8 +105,8 @@ export function Injuries({ players, injuries, setInjuries, availabilities, setAv
       </div>
 
       {injuries.length > 0 && (
-        <div className="two-col">
-          <div className="panel">
+        <div className="panel panel-sections panel-sections-v">
+          <div className="panel-section">
             <h3>{t("injury_by_body_part")}</h3>
             {bodyPartRanking.length === 0 && <p className="muted">{t("no_data_yet")}</p>}
             {bodyPartRanking.map((r, i) => (
@@ -117,7 +117,7 @@ export function Injuries({ players, injuries, setInjuries, availabilities, setAv
               </div>
             ))}
           </div>
-          <div className="panel">
+          <div className="panel-section">
             <h3>{t("injury_most_affected")}</h3>
             {topPlayers.length === 0 && <p className="muted">{t("no_data_yet")}</p>}
             {topPlayers.map((r, i) => (

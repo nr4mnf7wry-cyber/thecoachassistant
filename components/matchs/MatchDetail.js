@@ -256,7 +256,7 @@ function OpponentLineupPanel({ teamName, opponentProfiles, setOpponentProfiles, 
   };
 
   return (
-    <div className="panel" style={{ overflowX: "auto" }}>
+    <div className="panel-section" style={{ overflowX: "auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
         <h3 style={{ margin: 0 }}>{t("opponent_lineup_title")}</h3>
         <div style={{ display: "flex", gap: 6 }}>
@@ -317,7 +317,7 @@ function RecentRostersComparison({ leagueMatches, teamName, todayNames }) {
   if (!rosters.length) return null;
 
   return (
-    <div className="panel" style={{ overflowX: "auto" }}>
+    <div className="panel-section" style={{ overflowX: "auto" }}>
       <h3>{t("recent_rosters_title")}</h3>
       <p className="muted" style={{ fontSize: 12.5, marginBottom: 14 }}>{t("recent_rosters_help")}</p>
       <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
@@ -654,8 +654,8 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
       {tab === "prep" && (
         <>
           {opponentStats && (
-            <>
-              <div className="panel">
+            <div className="panel panel-sections">
+              <div className="panel-section">
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 8 }}>
                   <h3 style={{ margin: 0 }}>{t("prep_opponent_stats")}</h3>
                   <button className="icon-btn" onClick={() => setView("competitors:" + match.opponent)}>{t("go_to_competitors")}</button>
@@ -683,7 +683,7 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
               />
 
               {mostCommonLineup && (
-                <div className="panel">
+                <div className="panel-section">
                   <h3>{t("prep_common_lineup")}</h3>
                   <p className="muted mono" style={{ marginBottom: 10, fontSize: 12.5 }}>{mostCommonLineup.formation} ({mostCommonLineup.sampleSize}×)</p>
                   <div className="pitch-board">
@@ -699,7 +699,7 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
                   </div>
                 </div>
               )}
-            </>
+            </div>
           )}
           {!opponentStats && leagueMatches && leagueMatches.length > 0 && (
             <p className="muted" style={{ marginBottom: 14 }}>{t("prep_opponent_not_found")}</p>

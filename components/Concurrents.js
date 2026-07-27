@@ -14,7 +14,7 @@ export function Leaderboard({ title, rows, columns, icon: Icon, valueFn }) {
     return "";
   };
   return (
-    <div className="panel">
+    <div>
       <h3>{Icon && <Icon size={14} style={{ marginRight: 6, verticalAlign: -2 }} />}{title}</h3>
       {rows.length === 0 && <p className="muted">{t("no_data_yet")}</p>}
       {rows.map((r, i) => {
@@ -190,24 +190,34 @@ export function Concurrents({ leagueMatches, opponentProfiles, initialTeam }) {
             <div className="metric-card"><div><div className="metric-value">{stats.avgGf} / {stats.avgGa}</div><div className="metric-label">{t("league_avg_goals")}</div></div></div>
           </div>
 
-          <div className="panel">
-            <h3>{t("panel_form")}</h3>
-            <div style={{ display: "flex", gap: 8 }}>
-              {stats.form.length === 0 && <p className="muted">{t("no_matches_yet")}</p>}
-              {stats.form.map((r, i) => (
-                <span key={i} className="status-chip" style={{ background: RESULT_COLORS[r] }}>{t(RESULT_KEYS[r])}</span>
-              ))}
+          <div className="panel panel-sections">
+            <div className="panel-section">
+              <h3>{t("panel_form")}</h3>
+              <div style={{ display: "flex", gap: 8 }}>
+                {stats.form.length === 0 && <p className="muted">{t("no_matches_yet")}</p>}
+                {stats.form.map((r, i) => (
+                  <span key={i} className="status-chip" style={{ background: RESULT_COLORS[r] }}>{t(RESULT_KEYS[r])}</span>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="two-col">
-            <Leaderboard title={t("league_top_scorers")} rows={stats.topScorers} columns={[{ key: "goals", label: t("th_goals_short") }]} />
-            <Leaderboard title={t("league_top_minutes")} rows={stats.topMinutes} columns={[{ key: "minutes", label: t("th_minutes_short") }, { key: "matches", label: t("th_nb_matches") }]} />
-          </div>
+            <div className="panel-section panel-sections-v" style={{ padding: 0 }}>
+              <div className="panel-section">
+                <Leaderboard title={t("league_top_scorers")} rows={stats.topScorers} columns={[{ key: "goals", label: t("th_goals_short") }]} />
+              </div>
+              <div className="panel-section">
+                <Leaderboard title={t("league_top_minutes")} rows={stats.topMinutes} columns={[{ key: "minutes", label: t("th_minutes_short") }, { key: "matches", label: t("th_nb_matches") }]} />
+              </div>
+            </div>
 
-          <div className="two-col">
-            <Leaderboard title={t("league_cards")} rows={stats.cards} columns={[{ key: "yellow", label: t("th_yellow_short") }, { key: "red", label: t("th_red_short") }]} />
-            <Leaderboard title={t("league_sub_freq")} rows={stats.subFreq} columns={[{ key: "out", label: t("sub_out_label") }, { key: "in", label: t("sub_in_label") }]} />
+            <div className="panel-section panel-sections-v" style={{ padding: 0 }}>
+              <div className="panel-section">
+                <Leaderboard title={t("league_cards")} rows={stats.cards} columns={[{ key: "yellow", label: t("th_yellow_short") }, { key: "red", label: t("th_red_short") }]} />
+              </div>
+              <div className="panel-section">
+                <Leaderboard title={t("league_sub_freq")} rows={stats.subFreq} columns={[{ key: "out", label: t("sub_out_label") }, { key: "in", label: t("sub_in_label") }]} />
+              </div>
+            </div>
           </div>
 
           <div className="panel" style={{ overflowX: "auto" }}>

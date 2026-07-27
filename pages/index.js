@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import {
   LayoutDashboard, Users, UserCog, CalendarDays, BarChart3,
   ShieldHalf, ClipboardCheck, UserCheck, LineChart, Plus, Pencil, Settings, Trophy, Layers, HeartPulse, Radio, LogOut,
+  ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { useLang } from "../lib/i18n";
 import { useTeamData, Modal, DEFAULT_SEASON, todayStr, isMatchPlayed, isTrainingPlayed } from "../lib/shared";
@@ -101,7 +102,14 @@ function Sidebar({ view, setView, teamName, setTeamName, seasons, currentSeason,
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(teamName);
   const [showNewSeason, setShowNewSeason] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   useEffect(() => { setNameDraft(teamName); }, [teamName]);
+  useEffect(() => { if (localStorage.getItem("sidebar_collapsed") === "1") setCollapsed(true); }, []);
+  const toggleCollapsed = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    localStorage.setItem("sidebar_collapsed", next ? "1" : "0");
+  };
 
   const logout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -109,46 +117,53 @@ function Sidebar({ view, setView, teamName, setTeamName, seasons, currentSeason,
   };
 
   return (
-    <nav className="sidebar">
+    <nav className={"sidebar" + (collapsed ? " collapsed" : "")}>
+      <button className="sidebar-collapse-btn" onClick={toggleCollapsed} data-label={collapsed ? t("sidebar_expand") : t("sidebar_collapse")}>
+        {collapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
+      </button>
       <div className="brand">
         <div className="brand-mark"><ShieldHalf size={22} /></div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {editingName ? (
-            <input
-              className="brand-name-input" autoFocus value={nameDraft}
-              onChange={(e) => setNameDraft(e.target.value)}
-              onBlur={() => { setTeamName(nameDraft.trim() || teamName); setEditingName(false); }}
-              onKeyDown={(e) => { if (e.key === "Enter") e.target.blur(); }}
-            />
-          ) : (
-            <div className="brand-title" onClick={() => setEditingName(true)} title={t("edit_team_name_hint")}>
-              {teamName} <Pencil size={11} style={{ opacity: 0.5 }} />
+        {!collapsed && (
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {editingName ? (
+              <input
+                className="brand-name-input" autoFocus value={nameDraft}
+                onChange={(e) => setNameDraft(e.target.value)}
+                onBlur={() => { setTeamName(nameDraft.trim() || teamName); setEditingName(false); }}
+                onKeyDown={(e) => { if (e.key === "Enter") e.target.blur(); }}
+              />
+            ) : (
+              <div className="brand-title" onClick={() => setEditingName(true)} title={t("edit_team_name_hint")}>
+                {teamName} <Pencil size={11} style={{ opacity: 0.5 }} />
+              </div>
+            )}
+            <div className="season-row">
+              <select value={currentSeason} onChange={(e) => setCurrentSeason(e.target.value)}>
+                {seasons.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <button className="season-add-btn" onClick={() => setShowNewSeason(true)} title={t("season_new")}><Plus size={12} /></button>
             </div>
-          )}
-          <div className="season-row">
-            <select value={currentSeason} onChange={(e) => setCurrentSeason(e.target.value)}>
-              {seasons.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <button className="season-add-btn" onClick={() => setShowNewSeason(true)} title={t("season_new")}><Plus size={12} /></button>
           </div>
-        </div>
+        )}
       </div>
 
-      <div className="lang-switch">
-        <button className={"lang-btn" + (lang === "fr" ? " active" : "")} onClick={() => setLang("fr")}>FR</button>
-        <button className={"lang-btn" + (lang === "nl" ? " active" : "")} onClick={() => setLang("nl")}>NL</button>
-      </div>
+      {!collapsed && (
+        <div className="lang-switch">
+          <button className={"lang-btn" + (lang === "fr" ? " active" : "")} onClick={() => setLang("fr")}>FR</button>
+          <button className={"lang-btn" + (lang === "nl" ? " active" : "")} onClick={() => setLang("nl")}>NL</button>
+        </div>
+      )}
 
       <div className="nav-list">
         {NAV_GROUPS.map((group) => (
           <div key={group.label} style={{ marginBottom: 6 }}>
-            <div className="nav-group-label">{group.label}</div>
+            {!collapsed && <div className="nav-group-label">{group.label}</div>}
             {group.items.map((it) => {
               const Icon = it.icon;
               const active = view === it.id || (it.detailPrefix && view.startsWith(it.detailPrefix));
               return (
-                <button key={it.id} className={"nav-item" + (active ? " active" : "")} onClick={() => setView(it.id)}>
-                  <Icon size={18} /><span>{it.label}</span>
+                <button key={it.id} className={"nav-item" + (active ? " active" : "")} onClick={() => setView(it.id)} data-label={collapsed ? it.label : undefined}>
+                  <Icon size={18} />{!collapsed && <span>{it.label}</span>}
                 </button>
               );
             })}
@@ -158,11 +173,13 @@ function Sidebar({ view, setView, teamName, setTeamName, seasons, currentSeason,
 
       {currentUser && (
         <div className="account-block">
-          <div className="account-info">
-            <div className="account-name">{currentUser.username}</div>
-            <div className="account-role">{t(currentUser.role === "head" ? "role_head" : "role_assistant")}</div>
-          </div>
-          <button className="icon-btn" onClick={logout}><LogOut size={14} /></button>
+          {!collapsed && (
+            <div className="account-info">
+              <div className="account-name">{currentUser.username}</div>
+              <div className="account-role">{t(currentUser.role === "head" ? "role_head" : "role_assistant")}</div>
+            </div>
+          )}
+          <button className="icon-btn" onClick={logout} data-label={collapsed ? t("nav_logout") : undefined}><LogOut size={14} /></button>
         </div>
       )}
 
@@ -310,7 +327,19 @@ export default function App() {
         .app-root { --pitch-dark:#F5F6F8; --pitch-mid:#FFFFFF; --pitch-line:#E2E5EA; --chalk:#14171F; --chalk-dim:#667085; --gold:#2563EB; --red:#DC2626; --yellow:#B45309; --on-accent:#FFFFFF;
           font-family:'Inter',sans-serif; background:var(--pitch-dark); color:var(--chalk); min-height:100vh; display:flex; }
         .app-root * { box-sizing:border-box; }
-        .sidebar { width:230px; flex-shrink:0; background:var(--pitch-mid); padding:24px 14px; border-right:1px solid var(--pitch-line); display:flex; flex-direction:column; gap:16px; }
+        .sidebar { width:230px; flex-shrink:0; background:var(--pitch-mid); padding:24px 14px; border-right:1px solid var(--pitch-line); display:flex; flex-direction:column; gap:16px; position:relative; transition:width 0.15s ease; }
+        .sidebar.collapsed { width:68px; padding:24px 10px; align-items:center; }
+        .sidebar-collapse-btn { position:absolute; top:20px; right:-11px; width:22px; height:22px; border-radius:50%; background:var(--pitch-mid); border:1px solid var(--pitch-line); color:var(--chalk-dim); display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:5; }
+        .sidebar-collapse-btn:hover { color:var(--gold); border-color:var(--gold); }
+        .sidebar.collapsed .brand { justify-content:center; }
+        .sidebar.collapsed .nav-item { justify-content:center; padding:9px; }
+        .sidebar.collapsed .nav-list > div { display:flex; flex-direction:column; align-items:center; }
+        .sidebar.collapsed [data-label] { position:relative; }
+        .sidebar.collapsed [data-label]:hover::after {
+          content:attr(data-label); position:absolute; left:calc(100% + 10px); top:50%; transform:translateY(-50%);
+          background:var(--chalk); color:var(--pitch-mid); font-size:12px; font-weight:600; padding:5px 10px; border-radius:6px;
+          white-space:nowrap; z-index:20; pointer-events:none; box-shadow:0 2px 8px rgba(15,23,42,0.15);
+        }
         .brand { display:flex; align-items:center; gap:10px; padding:0 6px; }
         .brand-mark { width:36px; height:36px; border-radius:50%; background:var(--gold); color:var(--on-accent); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
         .brand-title { font-family:'Space Grotesk',sans-serif; font-size:15px; letter-spacing:0.01em; cursor:pointer; display:flex; align-items:center; gap:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -464,6 +493,13 @@ export default function App() {
         .dash-alerts-count { display:flex; align-items:center; gap:8px; font-weight:600; font-size:15px; color:var(--red); }
         .dash-alerts-card p { color:var(--chalk); }
         .dash-grid-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:14px; }
+        .panel-sections { padding:0; }
+        .panel-section { padding:18px 20px; }
+        .panel-section + .panel-section { border-top:1px solid var(--pitch-line); }
+        .panel-section h3 { margin-top:0; }
+        .panel-sections-v { display:grid; grid-template-columns:1fr 1fr; }
+        .panel-sections-v .panel-section + .panel-section { border-top:none; border-left:1px solid var(--pitch-line); }
+        @media (max-width:720px) { .panel-sections-v { grid-template-columns:1fr; } .panel-sections-v .panel-section + .panel-section { border-left:none; border-top:1px solid var(--pitch-line); } }
         .tactical-pitch-wrap { display:flex; justify-content:center; }
         .tactical-pitch-svg { width:100%; max-width:320px; height:auto; border-radius:10px; border:1px solid var(--pitch-line); box-shadow:0 2px 8px rgba(15,23,42,0.06); }
         .chip-grid { display:flex; flex-wrap:wrap; gap:8px; }
@@ -528,6 +564,8 @@ export default function App() {
         @media (max-width:720px) {
           .app-root { flex-direction:column; }
           .sidebar { width:100%; padding:12px 16px; }
+          .sidebar.collapsed { width:100%; padding:12px 16px; }
+          .sidebar-collapse-btn { display:none; }
           .nav-list { flex-direction:row; flex-wrap:wrap; }
           .nav-group-label { width:100%; }
           .main { padding:20px; }
