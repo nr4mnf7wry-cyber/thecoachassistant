@@ -105,7 +105,7 @@ export function Injuries({ players, injuries, setInjuries, availabilities, setAv
       </div>
 
       {injuries.length > 0 && (
-        <div className="flat-cols">
+        <div className="flat-cols flat-cols-divided">
           <div>
             <h3>{t("injury_by_body_part")}</h3>
             {bodyPartRanking.length === 0 && <p className="muted">{t("no_data_yet")}</p>}

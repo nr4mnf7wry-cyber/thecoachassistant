@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import {
   LayoutDashboard, Users, UserCog, CalendarDays, BarChart3,
   ShieldHalf, ClipboardCheck, UserCheck, LineChart, Plus, Pencil, Settings, Trophy, Layers, HeartPulse, Radio, LogOut,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Sun, Moon,
 } from "lucide-react";
 import { useLang } from "../lib/i18n";
 import { useTeamData, Modal, DEFAULT_SEASON, todayStr, isMatchPlayed, isTrainingPlayed } from "../lib/shared";
@@ -218,6 +218,13 @@ export default function App() {
 
   const [currentUser, setCurrentUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
+  useEffect(() => { if (localStorage.getItem("dark_mode") === "1") setDarkMode(true); }, []);
+  const toggleDarkMode = () => {
+    const next = !darkMode;
+    setDarkMode(next);
+    localStorage.setItem("dark_mode", next ? "1" : "0");
+  };
   useEffect(() => {
     (async () => {
       try {
@@ -334,11 +341,12 @@ export default function App() {
   }
 
   return (
-    <div className="app-root">
+    <div className={"app-root" + (darkMode ? " dark" : "")}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
-        .app-root { --pitch-dark:#F5F6F8; --pitch-mid:#FFFFFF; --pitch-line:#E2E5EA; --chalk:#14171F; --chalk-dim:#667085; --gold:#2563EB; --red:#DC2626; --yellow:#B45309; --on-accent:#FFFFFF;
+        .app-root { --pitch-dark:#F5F6F8; --pitch-mid:#FFFFFF; --pitch-line:#E2E5EA; --chalk:#14171F; --chalk-dim:#667085; --gold:#2563EB; --red:#DC2626; --yellow:#B45309; --on-accent:#FFFFFF; --hover-tint:rgba(15,23,42,0.045);
           font-family:'Inter',sans-serif; background:var(--pitch-dark); color:var(--chalk); min-height:100vh; display:flex; }
+        .app-root.dark { --pitch-dark:#14171C; --pitch-mid:#1C2028; --pitch-line:rgba(255,255,255,0.09); --chalk:#F2F3F5; --chalk-dim:#8B93A1; --gold:#4C8DFF; --red:#EF4444; --yellow:#F59E0B; --on-accent:#0A0E14; --hover-tint:rgba(255,255,255,0.07); }
         .app-root * { box-sizing:border-box; }
         .sidebar { width:230px; flex-shrink:0; background:var(--pitch-mid); padding:24px 14px; border-right:1px solid var(--pitch-line); display:flex; flex-direction:column; gap:16px; position:relative; transition:width 0.15s ease; }
         .sidebar.collapsed { width:68px; padding:24px 10px; align-items:center; }
@@ -374,8 +382,8 @@ export default function App() {
         .nav-group-label { font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; color:var(--chalk-dim); padding:8px 12px 4px; display:flex; align-items:center; gap:6px; }
         .nav-group-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
         .nav-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:6px; background:transparent; border:none; border-left:2px solid transparent; color:var(--chalk-dim); font-family:'Inter',sans-serif; font-size:13.5px; cursor:pointer; text-align:left; width:100%; transition:background-color 0.12s ease, color 0.12s ease; }
-        .nav-item:hover { background:rgba(15,23,42,0.05); color:var(--chalk); }
-        .nav-item.active { background:rgba(15,23,42,0.045); color:var(--chalk); font-weight:600; }
+        .nav-item:hover { background:var(--hover-tint); color:var(--chalk); }
+        .nav-item.active { background:var(--hover-tint); color:var(--chalk); font-weight:600; }
         .main-col { flex:1; display:flex; flex-direction:column; min-width:0; }
         .topbar { display:flex; align-items:center; justify-content:space-between; padding:14px 40px; border-bottom:1px solid var(--pitch-line); background:rgba(15,23,42,0.015); gap:20px; }
         .topbar-title { font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:600; letter-spacing:0.02em; color:var(--chalk-dim); flex-shrink:0; }
@@ -419,7 +427,7 @@ export default function App() {
         .btn-gold:hover { filter:brightness(1.12); }
         .btn-gold:active { transform:translateY(1px); }
         .icon-btn { background:transparent; border:1px solid var(--pitch-line); color:var(--chalk-dim); border-radius:7px; padding:6px 10px; cursor:pointer; display:flex; align-items:center; gap:6px; font-size:12.5px; transition:background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease; }
-        .icon-btn:hover { color:var(--chalk); border-color:var(--chalk-dim); background:rgba(15,23,42,0.03); }
+        .icon-btn:hover { color:var(--chalk); border-color:var(--chalk-dim); background:var(--hover-tint); }
         .back-link { display:inline-flex; align-items:center; gap:4px; background:none; border:none; color:var(--chalk-dim); font-size:13px; cursor:pointer; margin-bottom:14px; padding:0; }
         .back-link:hover { color:var(--chalk); }
         .position-columns { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:16px; align-items:start; }
@@ -513,7 +521,10 @@ export default function App() {
         .effectif-composition-line { color:var(--chalk-dim); font-size:13.5px; margin:0 0 20px; display:flex; gap:18px; flex-wrap:wrap; }
         .effectif-composition-line strong { color:var(--chalk); font-family:'IBM Plex Mono',monospace; }
         .flat-cols { display:grid; grid-template-columns:1fr 1fr; gap:32px; margin-bottom:24px; }
-        @media (max-width:720px) { .flat-cols { grid-template-columns:1fr; gap:20px; } }
+        .flat-cols-divided { gap:0; }
+        .flat-cols-divided > *:not(:last-child) { padding-right:32px; }
+        .flat-cols-divided > *:last-child { border-left:1px solid var(--pitch-line); padding-left:32px; }
+        @media (max-width:720px) { .flat-cols { grid-template-columns:1fr; gap:20px; } .flat-cols-divided > *:last-child { border-left:none; padding-left:0; } .flat-cols-divided > *:not(:last-child) { padding-right:0; } }
         .panel-sections { padding:0; }
         .panel-section { padding:18px 20px; }
         .panel-section + .panel-section { border-top:1px solid var(--pitch-line); }
@@ -610,6 +621,9 @@ export default function App() {
           <span className="topbar-title">{pageTitle(view, t)}</span>
           <GlobalSearch players={players} staff={staff} matches={matches} trainings={trainings} leagueMatches={leagueMatches} setView={setView} />
           {isReadOnly && <span className="readonly-badge">{t("readonly_badge")}</span>}
+          <button className="icon-btn" onClick={toggleDarkMode} title={darkMode ? t("light_mode") : t("dark_mode")}>
+            {darkMode ? <Sun size={15} /> : <Moon size={15} />}
+          </button>
           <span className="save-status muted mono">
             {saveState === "saving" && t("save_status_saving")}
             {saveState === "error" && t("save_status_error")}
