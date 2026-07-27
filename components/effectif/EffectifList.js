@@ -186,14 +186,11 @@ export function Effectif({
         </div>
       </div>
 
-      <div className="panel">
-        <h3>{t("panel_squad_composition")}</h3>
-        <div className="metric-grid" style={{ marginBottom: 0 }}>
-          {[...POSITIONS, ""].map((pos) => (
-            <MetricCard key={pos || "none"} label={pos ? t(POSITION_KEYS[pos]) : t("column_no_position")} value={positionCounts[pos] || 0} icon={Users} />
-          ))}
-        </div>
-      </div>
+      <p className="effectif-composition-line">
+        {[...POSITIONS, ""].filter((pos) => positionCounts[pos]).map((pos) => (
+          <span key={pos || "none"}><strong>{positionCounts[pos]}</strong> {pos ? t(POSITION_KEYS[pos]) : t("column_no_position")}</span>
+        ))}
+      </p>
 
       {players.length === 0 && (
         <EmptyState

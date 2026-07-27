@@ -500,13 +500,20 @@ export default function App() {
         .player-identity-stat-value { font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:20px; color:var(--chalk); }
         .player-identity-stat-label { font-size:11.5px; color:var(--chalk-dim); }
         .dash-greeting { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
-        .dash-grid-top { display:grid; grid-template-columns:2fr 1fr; gap:14px; margin-bottom:14px; }
+        .dash-grid-top { display:grid; grid-template-columns:2fr 1fr; gap:32px; margin-bottom:24px; }
         .dash-next-title { font-size:19px; font-weight:600; color:var(--chalk); }
         .dash-stat-value { font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:22px; color:var(--chalk); }
-        .dash-alerts-card.has-alerts { background:rgba(220,38,38,0.04); border-color:rgba(220,38,38,0.25); }
+        .dash-plain { padding:0; }
+        .dash-alerts-card.has-alerts { border-left:2px solid var(--red); padding-left:14px; }
         .dash-alerts-count { display:flex; align-items:center; gap:8px; font-weight:600; font-size:15px; color:var(--red); }
         .dash-alerts-card p { color:var(--chalk); }
+        .dash-metrics-row { display:flex; gap:28px; flex-wrap:wrap; margin-bottom:24px; padding-bottom:20px; border-bottom:1px solid var(--pitch-line); }
+        .dash-metrics-num { font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:17px; color:var(--chalk); }
         .dash-grid-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:14px; }
+        .effectif-composition-line { color:var(--chalk-dim); font-size:13.5px; margin:0 0 20px; display:flex; gap:18px; flex-wrap:wrap; }
+        .effectif-composition-line strong { color:var(--chalk); font-family:'IBM Plex Mono',monospace; }
+        .flat-cols { display:grid; grid-template-columns:1fr 1fr; gap:32px; margin-bottom:24px; }
+        @media (max-width:720px) { .flat-cols { grid-template-columns:1fr; gap:20px; } }
         .panel-sections { padding:0; }
         .panel-section { padding:18px 20px; }
         .panel-section + .panel-section { border-top:1px solid var(--pitch-line); }

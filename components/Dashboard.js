@@ -110,7 +110,7 @@ export function Dashboard({ players, matches, trainings, availabilities, setView
       </div>
 
       <div className="dash-grid-top">
-        <div className="panel dash-next-card">
+        <div className="dash-plain dash-next-card">
           <p className="muted mono" style={{ fontSize: 11, textTransform: "uppercase", marginBottom: 6 }}>{t("panel_next_event")}</p>
           {!nextEvent && <p className="muted">{t("no_upcoming_events")}</p>}
           {nextEvent && (
@@ -137,7 +137,7 @@ export function Dashboard({ players, matches, trainings, availabilities, setView
             </>
           )}
         </div>
-        <div className={"panel dash-alerts-card" + (alerts.length > 0 ? " has-alerts" : "")}>
+        <div className={"dash-plain dash-alerts-card" + (alerts.length > 0 ? " has-alerts" : "")}>
           <p className="muted mono" style={{ fontSize: 11, textTransform: "uppercase", marginBottom: 6 }}>{t("panel_alerts")}</p>
           {alerts.length === 0 && <p className="muted" style={{ fontSize: 13 }}>{t("no_alerts")}</p>}
           {alerts.length > 0 && (
@@ -149,10 +149,10 @@ export function Dashboard({ players, matches, trainings, availabilities, setView
         </div>
       </div>
 
-      <div className="dash-grid-metrics">
-        <div className="metric-card"><div><div className="metric-value">{unavailableNow.length}</div><div className="metric-label">{t("panel_unavailable_now")}</div></div></div>
-        <div className="metric-card"><div><div className="metric-value">{recentTrainingsCount}</div><div className="metric-label">{t("dash_recent_sessions")}</div></div></div>
-        <div className="metric-card"><div><div className="metric-value">{avgLoad ?? "—"}</div><div className="metric-label">{t("dash_avg_load")}</div></div></div>
+      <div className="dash-metrics-row">
+        <span><span className="dash-metrics-num">{unavailableNow.length}</span> <span className="muted">{t("panel_unavailable_now")}</span></span>
+        <span><span className="dash-metrics-num">{recentTrainingsCount}</span> <span className="muted">{t("dash_recent_sessions")}</span></span>
+        <span><span className="dash-metrics-num">{avgLoad ?? "—"}</span> <span className="muted">{t("dash_avg_load")}</span></span>
       </div>
 
       <div className="panel">
@@ -185,7 +185,7 @@ export function Dashboard({ players, matches, trainings, availabilities, setView
       </div>
 
       {unavailableNow.length > 0 && (
-        <div className="panel" style={{ paddingTop: 12, paddingBottom: 12 }}>
+        <div className="dash-plain" style={{ marginBottom: 20 }}>
           <p className="muted mono" style={{ fontSize: 11, textTransform: "uppercase", marginBottom: 8 }}>{t("panel_unavailable_now")}</p>
           <div className="chip-grid">
             {unavailableNow.map((a) => (
@@ -197,7 +197,7 @@ export function Dashboard({ players, matches, trainings, availabilities, setView
         </div>
       )}
 
-      <div className="panel">
+      <div className="dash-plain">
         <h3>{t("panel_workload_risk")}</h3>
         {workload.length === 0 && <p className="muted">{t("no_workload_data")}</p>}
         {workload.slice(0, 8).map((w, i) => (
