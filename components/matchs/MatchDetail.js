@@ -266,7 +266,6 @@ function OpponentLineupPanel({ teamName, opponentProfiles, setOpponentProfiles, 
           <button className="icon-btn" onClick={() => setShowForm(!showForm)}><Plus size={13} /> {t("add_player_to_roster")}</button>
         </div>
       </div>
-      <p className="muted" style={{ fontSize: 12.5, marginBottom: 14 }}>{t("opponent_lineup_help")}</p>
 
       {showForm && (
         <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", marginBottom: 16 }}>
@@ -358,7 +357,6 @@ function CompositionChangeLog({ match, patch }) {
   return (
     <div className="panel">
       <h3>{t("panel_composition_changes")}</h3>
-      <p className="muted" style={{ fontSize: 12.5, marginBottom: 14 }}>{t("composition_changes_help")}</p>
       <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", marginBottom: 14 }}>
         <label className="muted" style={{ fontSize: 12 }}>{t("th_minute")}<input className="cell-input" style={{ width: 60 }} type="number" min="0" max="120" value={minute} onChange={(e) => setMinute(e.target.value)} /></label>
         <label className="muted" style={{ fontSize: 12 }}>{t("tab_composition")}
@@ -687,7 +685,7 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
               {mostCommonLineup && (
                 <div className="panel">
                   <h3>{t("prep_common_lineup")}</h3>
-                  <p className="muted" style={{ marginBottom: 10, fontSize: 12.5 }}>{t("prep_common_lineup_help")} {mostCommonLineup.formation} ({mostCommonLineup.sampleSize}×)</p>
+                  <p className="muted mono" style={{ marginBottom: 10, fontSize: 12.5 }}>{mostCommonLineup.formation} ({mostCommonLineup.sampleSize}×)</p>
                   <div className="pitch-board">
                     {mostCommonLineup.rows.map((rowPlayers, rowIdx) => (
                       <div key={rowIdx} className="pitch-row">
@@ -846,7 +844,6 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
 
           <div className="panel">
             <h3>{t("panel_tactical_variants")}</h3>
-            <p className="muted" style={{ fontSize: 12.5, marginBottom: 16 }}>{t("tactical_variants_help")}</p>
             <TacticalVariantBlock label={t("comp_offensive")} variant="offensive" match={match} patch={patch} squad={squad} players={players} optional />
             <TacticalVariantBlock label={t("comp_defensive")} variant="defensive" match={match} patch={patch} squad={squad} players={players} optional />
           </div>

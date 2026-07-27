@@ -254,6 +254,10 @@ export function EntrainementDetail({ trainingId, players, trainings, setTraining
   const removeExercise = (id) => patch({ exercises: exercises.filter((e) => e.id !== id) });
 
   const sessionLoad = exercises.reduce((sum, e) => sum + (Number(e.duration) || 0) * (Number(e.rpe) || 0), 0);
+  const exercisesDuration = exercises.reduce((sum, e) => sum + (Number(e.duration) || 0), 0);
+  const computedCoachRpe = exercisesDuration > 0 ? Math.round((sessionLoad / exercisesDuration) * 10) / 10 : null;
+  const hasManualCoachRpe = training.coachRpe !== "" && training.coachRpe !== undefined && training.coachRpe !== null;
+  const coachRpeDisplay = hasManualCoachRpe ? training.coachRpe : computedCoachRpe;
   const rpeValues = players.map((p) => Number(attendance[p.id]?.rpe)).filter((v) => !isNaN(v) && v > 0);
   const playersAvgRpe = rpeValues.length ? Math.round((rpeValues.reduce((a, b) => a + b, 0) / rpeValues.length) * 10) / 10 : null;
 
@@ -274,7 +278,11 @@ export function EntrainementDetail({ trainingId, players, trainings, setTraining
 
       <div className="metric-grid">
         <MetricCard label={t("session_load_total")} value={sessionLoad || "—"} icon={Gauge} />
-        <MetricCard label={t("field_coach_rpe")} value={training.coachRpe || "—"} icon={Gauge} />
+        <MetricCard
+          label={t("field_coach_rpe") + (!hasManualCoachRpe && computedCoachRpe !== null ? ` (${t("auto_computed_short")})` : "")}
+          value={coachRpeDisplay ?? "—"}
+          icon={Gauge}
+        />
         <MetricCard label={t("players_avg_rpe")} value={playersAvgRpe ?? "—"} icon={Gauge} />
       </div>
 

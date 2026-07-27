@@ -6,7 +6,7 @@ import {
 } from "recharts";
 import { useLang } from "../../lib/i18n";
 import {
-  POSITION_KEYS, FOOT_KEYS, EVAL_CATEGORIES, EVAL_CATEGORY_KEYS, EVAL_SKILL_KEYS, ALL_EVAL_SKILLS,
+  POSITION_KEYS, FOOT_KEYS, EVAL_CATEGORIES, EVAL_CATEGORY_KEYS, EVAL_SKILL_KEYS, ALL_EVAL_SKILLS, evalCategoriesFor,
   uid, Badge, Modal, MetricCard,
   aggregateMatches, aggregateTrainings, latestCardio, cardioHistory,
   overallAvg, categoryAvg, evaluationHistory, latestEvaluationBySource, emptyEvaluationScores,
@@ -17,11 +17,12 @@ import { PlayerEditForm } from "./PlayerForms";
 
 /* ---------------- évaluation ---------------- */
 
-function EvaluationForm({ playerId, initial, onSave, onClose }) {
+function EvaluationForm({ playerId, position, initial, onSave, onClose }) {
   const { t } = useLang();
   const [date, setDate] = useState(initial?.date || todayStr());
   const [source, setSource] = useState(initial?.source || "coach");
   const [scores, setScores] = useState(initial?.scores || emptyEvaluationScores());
+  const categories = evalCategoriesFor(position);
 
   const setScore = (skill, value) => setScores({ ...scores, [skill]: clamp(value, 1, 10) });
 
@@ -36,7 +37,7 @@ function EvaluationForm({ playerId, initial, onSave, onClose }) {
           </select>
         </label>
       </div>
-      {Object.entries(EVAL_CATEGORIES).map(([cat, skills]) => (
+      {Object.entries(categories).map(([cat, skills]) => (
         <div key={cat} style={{ marginBottom: 14 }}>
           <div className="eval-cat-label">{t(EVAL_CATEGORY_KEYS[cat])}</div>
           <div className="eval-skill-grid">
@@ -132,7 +133,8 @@ export function FicheJoueur({ playerId, players, setPlayers, matches, trainings,
   const vmaData = cardioSeries.filter((c) => c.vma !== "" && c.vma !== undefined).map((c) => ({ name: formatDateShort(c.date), VMA: Number(c.vma) }));
   const vo2Data = cardioSeries.filter((c) => c.vo2max !== "" && c.vo2max !== undefined).map((c) => ({ name: formatDateShort(c.date), VO2max: Number(c.vo2max) }));
   const evalEvolution = [...evalHistory].reverse().map((e) => ({ name: formatDateShort(e.date), moyenne: overallAvg(e.scores) }));
-  const radarData = (lastCoachEval || lastPlayerEval) ? ALL_EVAL_SKILLS.map((skill) => ({
+  const playerEvalSkills = useMemo(() => Object.values(evalCategoriesFor(player?.position)).flat(), [player?.position]);
+  const radarData = (lastCoachEval || lastPlayerEval) ? playerEvalSkills.map((skill) => ({
     skill: t(EVAL_SKILL_KEYS[skill]),
     coach: lastCoachEval ? Number(lastCoachEval.scores[skill]) || 0 : null,
     joueur: lastPlayerEval ? Number(lastPlayerEval.scores[skill]) || 0 : null,
@@ -198,11 +200,6 @@ export function FicheJoueur({ playerId, players, setPlayers, matches, trainings,
             )}
             <button className="icon-btn" onClick={() => setShowEdit(true)}><Pencil size={16} /></button>
           </div>
-        </div>
-        <div className="player-identity-stats">
-          <div className="player-identity-stat"><span className="player-identity-stat-value">{agg?.matchesPresent ?? 0}</span><span className="player-identity-stat-label">{t("metric_matches_played")}</span></div>
-          <div className="player-identity-stat"><span className="player-identity-stat-value">{agg?.buts ?? 0}</span><span className="player-identity-stat-label">{t("metric_goals")}</span></div>
-          <div className="player-identity-stat"><span className="player-identity-stat-value">{lastCoachEval ? (overallAvg(lastCoachEval.scores) ?? "—") : "—"}</span><span className="player-identity-stat-label">{t("metric_general_note")}</span></div>
         </div>
       </div>
 
@@ -281,13 +278,13 @@ export function FicheJoueur({ playerId, players, setPlayers, matches, trainings,
         )}
         {evalHistory.length > 0 && (
           <table className="stats-table" style={{ marginTop: 14 }}>
-            <thead><tr><th>{t("th_date")}</th><th>{t("eval_source")}</th>{Object.keys(EVAL_CATEGORIES).map((c) => <th key={c}>{t(EVAL_CATEGORY_KEYS[c])}</th>)}<th>{t("eval_overall")}</th><th /></tr></thead>
+            <thead><tr><th>{t("th_date")}</th><th>{t("eval_source")}</th>{Object.keys(evalCategoriesFor(player.position)).map((c) => <th key={c}>{t(EVAL_CATEGORY_KEYS[c])}</th>)}<th>{t("eval_overall")}</th><th /></tr></thead>
             <tbody>
               {evalHistory.map((e) => (
                 <tr key={e.id}>
                   <td className="mono">{formatDate(e.date)}</td>
                   <td><span className="status-chip" style={{ background: (e.source || "coach") === "coach" ? "var(--gold)" : "var(--yellow)" }}>{t((e.source || "coach") === "coach" ? "eval_source_coach" : "eval_source_player")}</span></td>
-                  {Object.entries(EVAL_CATEGORIES).map(([c, skills]) => <td key={c} className="mono">{categoryAvg(e.scores, skills) ?? "—"}</td>)}
+                  {Object.entries(evalCategoriesFor(player.position)).map(([c, skills]) => <td key={c} className="mono">{categoryAvg(e.scores, skills) ?? "—"}</td>)}
                   <td className="mono">{overallAvg(e.scores) ?? "—"}</td>
                   <td style={{ display: "flex", gap: 4 }}>
                     <button className="icon-btn" onClick={() => { setEditingEval(e); setShowEval(true); }}><Pencil size={13} /></button>
@@ -457,7 +454,7 @@ export function FicheJoueur({ playerId, players, setPlayers, matches, trainings,
 
       {showEdit && <PlayerEditForm initial={player} existingPlayers={players} onSave={saveEdit} onClose={() => setShowEdit(false)} />}
       {showGoal && <GoalForm playerId={playerId} initial={editingGoal} onSave={saveGoal} onClose={() => { setShowGoal(false); setEditingGoal(null); }} />}
-      {showEval && <EvaluationForm playerId={playerId} initial={editingEval} onSave={saveEval} onClose={() => { setShowEval(false); setEditingEval(null); }} />}
+      {showEval && <EvaluationForm playerId={playerId} position={player.position} initial={editingEval} onSave={saveEval} onClose={() => { setShowEval(false); setEditingEval(null); }} />}
       {showBody && <BodyMetricForm playerId={playerId} initial={editingBody} onSave={saveBody} onClose={() => { setShowBody(false); setEditingBody(null); }} />}
     </div>
   );

@@ -171,7 +171,6 @@ export function Dashboard({ players, matches, trainings, availabilities, setView
         </div>
         <div className="panel">
           <h3>{t("panel_alerts")}</h3>
-          <p className="muted" style={{ fontSize: 12, marginBottom: 10 }}>{t("alerts_help")}</p>
           {alerts.length === 0 && <p className="muted">{t("no_alerts")}</p>}
           {alerts.map((a, i) => {
             const Icon = a.icon;
@@ -187,7 +186,6 @@ export function Dashboard({ players, matches, trainings, availabilities, setView
 
       <div className="panel">
         <h3>{t("panel_workload_risk")}</h3>
-        <p className="muted" style={{ fontSize: 12, marginBottom: 10 }}>{t("workload_help")}</p>
         {workload.length === 0 && <p className="muted">{t("no_workload_data")}</p>}
         {workload.slice(0, 8).map((w, i) => (
           <div key={w.player.id} className="rank-card">

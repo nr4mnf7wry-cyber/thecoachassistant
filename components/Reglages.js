@@ -74,7 +74,6 @@ export function Reglages({ data, setters, teamName, currentUser }) {
 
       <div className="panel">
         <h3><Download size={15} style={{ marginRight: 6, verticalAlign: -2 }} />{t("panel_backup")}</h3>
-        <p className="muted" style={{ marginBottom: 14 }}>{t("backup_help")}</p>
         <button className="btn-gold" onClick={exportBackup}><Download size={16} /> {t("export_backup")}</button>
       </div>
 
@@ -138,7 +137,6 @@ function AccountsPanel() {
         <h3 style={{ margin: 0 }}><Users size={15} style={{ marginRight: 6, verticalAlign: -2 }} />{t("panel_accounts")}</h3>
         <button className="btn-gold" onClick={() => setShowForm(!showForm)}><UserPlus size={16} /> {t("add_assistant")}</button>
       </div>
-      <p className="muted" style={{ marginBottom: 14 }}>{t("accounts_help")}</p>
 
       {showForm && (
         <form onSubmit={addAssistant} style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", marginBottom: 16 }}>

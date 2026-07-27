@@ -120,8 +120,6 @@ export function CompetitionList({ leagueMatches, setLeagueMatches, setView }) {
         </div>
       </div>
 
-      <p className="muted" style={{ marginBottom: 20 }}>{t("competition_help")}</p>
-
       {groups.length === 0 && <p className="muted">{t("journee_none")}</p>}
 
       {groups.map((g) => {

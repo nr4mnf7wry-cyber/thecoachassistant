@@ -27,7 +27,6 @@ export function OpponentProfileContent({ teamName, opponentProfiles, setOpponent
 
   return (
     <div>
-      <p className="muted" style={{ marginBottom: 14 }}>{t("opponent_profile_help")}</p>
       {leagueMatches && leagueMatches.length > 0 && (
         <button className="icon-btn" style={{ marginBottom: 16 }} onClick={refreshFromCompetition}>
           <RefreshCw size={13} /> {t("refresh_from_competition")}

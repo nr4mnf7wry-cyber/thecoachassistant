@@ -98,7 +98,6 @@ export function AssociationsList({ rows }) {
   return (
     <div className="panel">
       <h3>{t("panel_associations")}</h3>
-      <p className="muted" style={{ marginBottom: 10, fontSize: 12.5 }}>{t("panel_associations_help")}</p>
       {rows.length === 0 && <p className="muted">{t("no_data_yet")}</p>}
       {rows.map((r, i) => (
         <div key={i} className="leaderboard-row">
@@ -160,8 +159,6 @@ export function Concurrents({ leagueMatches, opponentProfiles, initialTeam }) {
       <div className="view-header">
         <h1>{t("competitors_title")}</h1>
       </div>
-
-      <p className="muted" style={{ marginBottom: 20 }}>{t("competitors_analysis_help")}</p>
 
       <div className="panel">
         <label className="muted" style={{ fontSize: 12.5, display: "flex", flexDirection: "column", gap: 6, maxWidth: 320 }}>
@@ -279,7 +276,7 @@ export function Concurrents({ leagueMatches, opponentProfiles, initialTeam }) {
           {mostCommonLineup && (
             <div className="panel">
               <h3>{t("prep_common_lineup")}</h3>
-              <p className="muted" style={{ marginBottom: 10, fontSize: 12.5 }}>{t("prep_common_lineup_help")} {mostCommonLineup.formation} ({mostCommonLineup.sampleSize}×)</p>
+              <p className="muted mono" style={{ marginBottom: 10, fontSize: 12.5 }}>{mostCommonLineup.formation} ({mostCommonLineup.sampleSize}×)</p>
               <div className="pitch-board">
                 {mostCommonLineup.rows.map((rowPlayers, rowIdx) => (
                   <div key={rowIdx} className="pitch-row">

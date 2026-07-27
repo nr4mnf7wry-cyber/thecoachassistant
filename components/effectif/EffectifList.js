@@ -199,7 +199,6 @@ export function Effectif({
         <EmptyState
           icon={Users}
           title={t("effectif_empty_title")}
-          help={t("effectif_empty_help")}
           actionLabel={t("effectif_add")}
           onAction={() => setShowBulk(true)}
         />

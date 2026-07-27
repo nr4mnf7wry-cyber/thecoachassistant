@@ -87,7 +87,6 @@ function NewSeasonModal({ suggestion, onCreate, onClose }) {
   const [label, setLabel] = useState(suggestion);
   return (
     <Modal title={t("season_new_title")} onClose={onClose}>
-      <p className="muted" style={{ marginBottom: 12 }}>{t("season_new_help")}</p>
       <div className="form-grid">
         <label>{t("season_label")}<input value={label} onChange={(e) => setLabel(e.target.value)} /></label>
       </div>

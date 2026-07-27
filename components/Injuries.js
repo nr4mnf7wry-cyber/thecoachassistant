@@ -89,7 +89,6 @@ export function Injuries({ players, injuries, setInjuries, availabilities, setAv
         <h1>{t("injuries_title")}</h1>
         <button className="btn-gold" onClick={() => { setEditing(null); setShowForm(true); }}><Plus size={16} /> {t("injury_new_title")}</button>
       </div>
-      <p className="muted" style={{ marginBottom: 20 }}>{t("injuries_help")}</p>
 
       {injuries.length > 0 && (
         <div className="two-col">
