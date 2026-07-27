@@ -858,26 +858,28 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
 
       {tab === "score" && (
         <>
-          <div className="panel">
-            <h3>{t("panel_score")}</h3>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <input className="cell-input" style={{ width: 60 }} type="number" min="0" value={match.scoreFor} onChange={(e) => patch({ scoreFor: clamp(e.target.value, 0, 99) })} />
-              <span className="muted">–</span>
-              <input className="cell-input" style={{ width: 60 }} type="number" min="0" value={match.scoreAgainst} onChange={(e) => patch({ scoreAgainst: clamp(e.target.value, 0, 99) })} />
+          <div className="panel panel-sections">
+            <div className="panel-section">
+              <h3>{t("panel_score")}</h3>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <input className="cell-input" style={{ width: 60 }} type="number" min="0" value={match.scoreFor} onChange={(e) => patch({ scoreFor: clamp(e.target.value, 0, 99) })} />
+                <span className="muted">–</span>
+                <input className="cell-input" style={{ width: 60 }} type="number" min="0" value={match.scoreAgainst} onChange={(e) => patch({ scoreAgainst: clamp(e.target.value, 0, 99) })} />
+              </div>
             </div>
-          </div>
 
-          <div className="panel">
-            <h3>{t("panel_team_stats")}</h3>
-            <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12 }}>
-              {[
-                ["possession", "field_possession"], ["tirs", "th_shots"], ["corners", "field_corners"], ["cpa", "field_cpa"],
-                ["xg", "field_xg"], ["occasions", "field_occasions"], ["ballonsPerdus", "field_ballons_perdus"], ["ballonsRecuperes", "field_ballons_recuperes"],
-              ].map(([key, labelKey]) => (
-                <label key={key}>{t(labelKey)}
-                  <input type="number" value={match.teamStats?.[key] ?? ""} onChange={(e) => updateTeamStat(key, e.target.value)} />
-                </label>
-              ))}
+            <div className="panel-section">
+              <h3>{t("panel_team_stats")}</h3>
+              <div className="form-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12 }}>
+                {[
+                  ["possession", "field_possession"], ["tirs", "th_shots"], ["corners", "field_corners"], ["cpa", "field_cpa"],
+                  ["xg", "field_xg"], ["occasions", "field_occasions"], ["ballonsPerdus", "field_ballons_perdus"], ["ballonsRecuperes", "field_ballons_recuperes"],
+                ].map(([key, labelKey]) => (
+                  <label key={key}>{t(labelKey)}
+                    <input type="number" value={match.teamStats?.[key] ?? ""} onChange={(e) => updateTeamStat(key, e.target.value)} />
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -965,22 +967,23 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
 
       {tab === "goals" && (
         <>
-          <div className="panel" style={{ overflowX: "auto" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <h3 style={{ margin: 0 }}>{t("panel_goals_scored")}</h3>
-              <button className="btn-gold" onClick={addGoalScored}><Plus size={16} /> {t("goal_add")}</button>
-            </div>
-            {goalsScored.length === 0 && <p className="muted">{t("no_goals_scored")}</p>}
-            {goalsScored.length > 0 && (
-              <table className="stats-table entry-table">
-                <thead><tr><th>{t("th_minute")}</th><th>{t("field_scorer")}</th><th>{t("th_type")}</th><th /></tr></thead>
-                <tbody>
-                  {goalsScored.map((g) => (
-                    <tr key={g.id}>
-                      <td><input className="cell-input" type="number" min="0" max="120" value={g.minute} onChange={(e) => updateGoalScored(g.id, "minute", e.target.value)} /></td>
-                      <td>
-                        <select value={g.player} onChange={(e) => updateGoalScored(g.id, "player", e.target.value)}>
-                          <option value="">—</option>
+          <div className="panel panel-sections panel-sections-v">
+            <div className="panel-section" style={{ overflowX: "auto" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                <h3 style={{ margin: 0 }}>{t("panel_goals_scored")}</h3>
+                <button className="btn-gold" onClick={addGoalScored}><Plus size={16} /> {t("goal_add")}</button>
+              </div>
+              {goalsScored.length === 0 && <p className="muted">{t("no_goals_scored")}</p>}
+              {goalsScored.length > 0 && (
+                <table className="stats-table entry-table">
+                  <thead><tr><th>{t("th_minute")}</th><th>{t("field_scorer")}</th><th>{t("th_type")}</th><th /></tr></thead>
+                  <tbody>
+                    {goalsScored.map((g) => (
+                      <tr key={g.id}>
+                        <td><input className="cell-input" type="number" min="0" max="120" value={g.minute} onChange={(e) => updateGoalScored(g.id, "minute", e.target.value)} /></td>
+                        <td>
+                          <select value={g.player} onChange={(e) => updateGoalScored(g.id, "player", e.target.value)}>
+                            <option value="">—</option>
                           {players.map((p) => <option key={p.id} value={p.name}>{p.name}</option>)}
                         </select>
                       </td>
@@ -991,29 +994,30 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
                 </tbody>
               </table>
             )}
-          </div>
-
-          <div className="panel" style={{ overflowX: "auto" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <h3 style={{ margin: 0 }}>{t("panel_goals_conceded")}</h3>
-              <button className="btn-gold" onClick={addGoalConceded}><Plus size={16} /> {t("goal_add")}</button>
             </div>
-            {goalsConceded.length === 0 && <p className="muted">{t("no_goals_conceded")}</p>}
-            {goalsConceded.length > 0 && (
-              <table className="stats-table entry-table">
-                <thead><tr><th>{t("th_minute")}</th><th>{t("field_conceded_player")}</th><th>{t("th_type")}</th><th /></tr></thead>
-                <tbody>
-                  {goalsConceded.map((g) => (
-                    <tr key={g.id}>
-                      <td><input className="cell-input" type="number" min="0" max="120" value={g.minute} onChange={(e) => updateGoalConceded(g.id, "minute", e.target.value)} /></td>
-                      <td><input className="cell-input" style={{ width: 140 }} list="opponent-roster-list" value={g.player} onChange={(e) => updateGoalConceded(g.id, "player", e.target.value)} /></td>
-                      <td><GoalTypeSelect value={g.type} onChange={(v) => updateGoalConceded(g.id, "type", v)} /></td>
-                      <td><button className="icon-btn" onClick={() => removeGoalConceded(g.id)}><Trash2 size={13} /></button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+
+            <div className="panel-section" style={{ overflowX: "auto" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                <h3 style={{ margin: 0 }}>{t("panel_goals_conceded")}</h3>
+                <button className="btn-gold" onClick={addGoalConceded}><Plus size={16} /> {t("goal_add")}</button>
+              </div>
+              {goalsConceded.length === 0 && <p className="muted">{t("no_goals_conceded")}</p>}
+              {goalsConceded.length > 0 && (
+                <table className="stats-table entry-table">
+                  <thead><tr><th>{t("th_minute")}</th><th>{t("field_conceded_player")}</th><th>{t("th_type")}</th><th /></tr></thead>
+                  <tbody>
+                    {goalsConceded.map((g) => (
+                      <tr key={g.id}>
+                        <td><input className="cell-input" type="number" min="0" max="120" value={g.minute} onChange={(e) => updateGoalConceded(g.id, "minute", e.target.value)} /></td>
+                        <td><input className="cell-input" style={{ width: 140 }} list="opponent-roster-list" value={g.player} onChange={(e) => updateGoalConceded(g.id, "player", e.target.value)} /></td>
+                        <td><GoalTypeSelect value={g.type} onChange={(v) => updateGoalConceded(g.id, "type", v)} /></td>
+                        <td><button className="icon-btn" onClick={() => removeGoalConceded(g.id)}><Trash2 size={13} /></button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
         </>
       )}

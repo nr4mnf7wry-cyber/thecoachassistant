@@ -28,6 +28,7 @@ function buildNavGroups(t) {
   return [
     {
       label: t("nav_group_team"),
+      color: "#2563EB",
       items: [
         { id: "dashboard", label: t("nav_dashboard"), icon: LayoutDashboard },
         { id: "effectif", label: t("nav_effectif"), icon: Users, detailPrefix: "joueur:" },
@@ -37,6 +38,7 @@ function buildNavGroups(t) {
     },
     {
       label: t("nav_group_planning"),
+      color: "#0F766E",
       items: [
         { id: "disponibilites", label: t("nav_disponibilites"), icon: UserCheck },
         { id: "entrainements", label: t("nav_entrainements"), icon: ClipboardCheck, detailPrefix: "entrainements:" },
@@ -46,6 +48,7 @@ function buildNavGroups(t) {
     },
     {
       label: t("nav_group_performance"),
+      color: "#7C3AED",
       items: [
         { id: "stats", label: t("nav_stats"), icon: BarChart3 },
         { id: "analyses", label: t("nav_analyses"), icon: LineChart },
@@ -53,6 +56,7 @@ function buildNavGroups(t) {
     },
     {
       label: t("nav_group_league"),
+      color: "#C2410C",
       items: [
         { id: "competition", label: t("nav_competition"), icon: Layers, detailPrefix: "competition:" },
         { id: "competitors", label: t("nav_competitors"), icon: Trophy, detailPrefix: "competitors:" },
@@ -157,12 +161,21 @@ function Sidebar({ view, setView, teamName, setTeamName, seasons, currentSeason,
       <div className="nav-list">
         {NAV_GROUPS.map((group) => (
           <div key={group.label} style={{ marginBottom: 6 }}>
-            {!collapsed && <div className="nav-group-label">{group.label}</div>}
+            {!collapsed && (
+              <div className="nav-group-label">
+                {group.color && <span className="nav-group-dot" style={{ background: group.color }} />}
+                {group.label}
+              </div>
+            )}
             {group.items.map((it) => {
               const Icon = it.icon;
               const active = view === it.id || (it.detailPrefix && view.startsWith(it.detailPrefix));
               return (
-                <button key={it.id} className={"nav-item" + (active ? " active" : "")} onClick={() => setView(it.id)} data-label={collapsed ? it.label : undefined}>
+                <button
+                  key={it.id} className={"nav-item" + (active ? " active" : "")} onClick={() => setView(it.id)}
+                  data-label={collapsed ? it.label : undefined}
+                  style={active && group.color ? { borderLeft: `2px solid ${group.color}` } : undefined}
+                >
                   <Icon size={18} />{!collapsed && <span>{it.label}</span>}
                 </button>
               );
@@ -358,10 +371,11 @@ export default function App() {
         .account-name { font-size:12.5px; font-weight:600; color:var(--chalk); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .account-role { font-size:11px; color:var(--chalk-dim); }
         .readonly-badge { display:inline-flex; align-items:center; padding:4px 10px; border-radius:6px; background:rgba(180,83,7,0.1); border:1px solid rgba(180,83,7,0.25); color:#B45309; font-size:11.5px; font-weight:600; }
-        .nav-group-label { font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; color:var(--chalk-dim); padding:8px 12px 4px; }
+        .nav-group-label { font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; color:var(--chalk-dim); padding:8px 12px 4px; display:flex; align-items:center; gap:6px; }
+        .nav-group-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
         .nav-item { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:6px; background:transparent; border:none; border-left:2px solid transparent; color:var(--chalk-dim); font-family:'Inter',sans-serif; font-size:13.5px; cursor:pointer; text-align:left; width:100%; transition:background-color 0.12s ease, color 0.12s ease; }
         .nav-item:hover { background:rgba(15,23,42,0.05); color:var(--chalk); }
-        .nav-item.active { background:rgba(37,99,235,0.12); border-left-color:var(--gold); color:var(--chalk); font-weight:600; }
+        .nav-item.active { background:rgba(15,23,42,0.045); color:var(--chalk); font-weight:600; }
         .main-col { flex:1; display:flex; flex-direction:column; min-width:0; }
         .topbar { display:flex; align-items:center; justify-content:space-between; padding:14px 40px; border-bottom:1px solid var(--pitch-line); background:rgba(15,23,42,0.015); gap:20px; }
         .topbar-title { font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:600; letter-spacing:0.02em; color:var(--chalk-dim); flex-shrink:0; }

@@ -156,7 +156,8 @@ export function Analyses({ players, matches, trainings }) {
 
       {tab === "filters" && (
         <>
-      <div className="panel">
+      <div className="panel panel-sections">
+        <div className="panel-section">
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12 }}>
           <label className="muted" style={{ fontSize: 12.5, display: "flex", flexDirection: "column", gap: 5 }}>{t("filter_competition")}
             <select value={competition} onChange={(e) => setCompetition(e.target.value)}>
@@ -184,13 +185,16 @@ export function Analyses({ players, matches, trainings }) {
             </select>
           </label>
         </div>
-      </div>
+        </div>
 
+        <div className="panel-section">
       <div className="metric-grid">
         <div className="metric-card"><div><div className="metric-value">{summary.count}</div><div className="metric-label">{t("summary_matches_count")}</div></div></div>
         <div className="metric-card"><div><div className="metric-value">{summary.w}-{summary.d}-{summary.l}</div><div className="metric-label">{t("summary_record")}</div></div></div>
         <div className="metric-card"><div><div className="metric-value">{summary.gf} / {summary.ga}</div><div className="metric-label">{t("summary_goals_for")} / {t("summary_goals_against")}</div></div></div>
         <div className="metric-card"><div><div className="metric-value">{summary.avg}</div><div className="metric-label">{t("summary_avg_goals")}</div></div></div>
+      </div>
+        </div>
       </div>
 
       <div className="two-col">

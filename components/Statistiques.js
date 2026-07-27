@@ -74,7 +74,7 @@ export function Statistiques({ players, matches, trainings, evaluations }) {
   }, [players, evaluations, agg]);
 
   const Leaderboard = ({ title, icon: Icon, rows, valueFn }) => (
-    <div className="panel">
+    <div>
       <h3><Icon size={15} style={{ marginRight: 6, verticalAlign: -2 }} />{title}</h3>
       {rows.length === 0 && <p className="muted">{t("no_data_yet")}</p>}
       {rows.map((r, i) => (
@@ -166,20 +166,20 @@ export function Statistiques({ players, matches, trainings, evaluations }) {
       )}
 
       {tab === "leaderboards" && (
-        <>
-          <div className="two-col">
-            <Leaderboard title={t("lb_top_scorers")} icon={Target} rows={buteurs} valueFn={(r) => r.buts} />
-            <Leaderboard title={t("lb_top_assists")} icon={Handshake} rows={passeurs} valueFn={(r) => r.passes} />
+        <div className="panel panel-sections">
+          <div className="panel-section panel-sections-v" style={{ padding: 0 }}>
+            <div className="panel-section"><Leaderboard title={t("lb_top_scorers")} icon={Target} rows={buteurs} valueFn={(r) => r.buts} /></div>
+            <div className="panel-section"><Leaderboard title={t("lb_top_assists")} icon={Handshake} rows={passeurs} valueFn={(r) => r.passes} /></div>
           </div>
-          <div className="two-col">
-            <Leaderboard title={t("lb_best_avg")} icon={Award} rows={notes} valueFn={(r) => r.avgNote} />
-            <Leaderboard title={t("lb_discipline")} icon={BarChart3} rows={cartons} valueFn={(r) => `${r.jaune} / ${r.rouge}`} />
+          <div className="panel-section panel-sections-v" style={{ padding: 0 }}>
+            <div className="panel-section"><Leaderboard title={t("lb_best_avg")} icon={Award} rows={notes} valueFn={(r) => r.avgNote} /></div>
+            <div className="panel-section"><Leaderboard title={t("lb_discipline")} icon={BarChart3} rows={cartons} valueFn={(r) => `${r.jaune} / ${r.rouge}`} /></div>
           </div>
-          <div className="two-col">
-            <Leaderboard title={t("lb_attendance")} icon={ClipboardCheck} rows={assiduite} valueFn={(r) => `${r.rate}% (${r.present}/${r.total})`} />
-            <Leaderboard title={t("lb_rpe")} icon={Gauge} rows={charge} valueFn={(r) => r.avgRpe} />
+          <div className="panel-section panel-sections-v" style={{ padding: 0 }}>
+            <div className="panel-section"><Leaderboard title={t("lb_attendance")} icon={ClipboardCheck} rows={assiduite} valueFn={(r) => `${r.rate}% (${r.present}/${r.total})`} /></div>
+            <div className="panel-section"><Leaderboard title={t("lb_rpe")} icon={Gauge} rows={charge} valueFn={(r) => r.avgRpe} /></div>
           </div>
-          <div className="panel">
+          <div className="panel-section">
             <h3><Wind size={15} style={{ marginRight: 6, verticalAlign: -2 }} />{t("lb_vma")}</h3>
             {vmaTop.length === 0 && <p className="muted">{t("no_vma_yet")}</p>}
             {vmaTop.map((r, i) => (
@@ -194,7 +194,7 @@ export function Statistiques({ players, matches, trainings, evaluations }) {
               </div>
             ))}
           </div>
-        </>
+        </div>
       )}
 
       {tab === "position" && (

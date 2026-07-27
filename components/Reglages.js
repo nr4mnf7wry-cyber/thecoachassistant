@@ -72,12 +72,13 @@ export function Reglages({ data, setters, teamName, currentUser }) {
 
       {currentUser?.role === "head" && <AccountsPanel />}
 
-      <div className="panel">
+      <div className="panel panel-sections panel-sections-v">
+        <div className="panel-section">
         <h3><Download size={15} style={{ marginRight: 6, verticalAlign: -2 }} />{t("panel_backup")}</h3>
         <button className="btn-gold" onClick={exportBackup}><Download size={16} /> {t("export_backup")}</button>
-      </div>
+        </div>
 
-      <div className="panel">
+        <div className="panel-section">
         <h3><Upload size={15} style={{ marginRight: 6, verticalAlign: -2 }} />{t("panel_restore")}</h3>
         <p className="muted" style={{ marginBottom: 14 }}>{t("restore_help")}</p>
         <button
@@ -93,6 +94,7 @@ export function Reglages({ data, setters, teamName, currentUser }) {
             {message.text}
           </p>
         )}
+        </div>
       </div>
     </div>
   );

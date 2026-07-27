@@ -365,57 +365,63 @@ export function FicheJoueur({ playerId, players, setPlayers, matches, trainings,
         )}
       </div>
 
-      {noteData.length > 1 && (
-        <div className="panel">
-          <h3>{t("chart_note_evolution")}</h3>
-          <div style={{ height: 190 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={noteData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--pitch-line)" />
-                <XAxis dataKey="name" tick={{ fill: "var(--chalk-dim)", fontSize: 11 }} />
-                <YAxis domain={[0, 10]} tick={{ fill: "var(--chalk-dim)", fontSize: 11 }} />
-                <Tooltip contentStyle={{ background: "var(--pitch-mid)", border: "1px solid var(--pitch-line)", color: "var(--chalk)" }} />
-                <Line type="monotone" dataKey="note" stroke="var(--gold)" strokeWidth={2} dot={{ r: 3 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+      {(noteData.length > 1 || vmaData.length > 1 || vo2Data.length > 1) && (
+        <div className="panel panel-sections">
+          {noteData.length > 1 && (
+            <div className="panel-section">
+              <h3>{t("chart_note_evolution")}</h3>
+              <div style={{ height: 190 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={noteData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--pitch-line)" />
+                    <XAxis dataKey="name" tick={{ fill: "var(--chalk-dim)", fontSize: 11 }} />
+                    <YAxis domain={[0, 10]} tick={{ fill: "var(--chalk-dim)", fontSize: 11 }} />
+                    <Tooltip contentStyle={{ background: "var(--pitch-mid)", border: "1px solid var(--pitch-line)", color: "var(--chalk)" }} />
+                    <Line type="monotone" dataKey="note" stroke="var(--gold)" strokeWidth={2} dot={{ r: 3 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {(vmaData.length > 1 || vo2Data.length > 1) && (
+            <div className="panel-section panel-sections-v" style={{ padding: 0 }}>
+              {vmaData.length > 1 && (
+                <div className="panel-section">
+                  <h3>{t("chart_vma_evolution")}</h3>
+                  <div style={{ height: 180 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={vmaData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--pitch-line)" />
+                        <XAxis dataKey="name" tick={{ fill: "var(--chalk-dim)", fontSize: 10 }} />
+                        <YAxis tick={{ fill: "var(--chalk-dim)", fontSize: 11 }} />
+                        <Tooltip contentStyle={{ background: "var(--pitch-mid)", border: "1px solid var(--pitch-line)", color: "var(--chalk)" }} />
+                        <Line type="monotone" dataKey="VMA" stroke="var(--yellow)" strokeWidth={2} dot={{ r: 3 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+              {vo2Data.length > 1 && (
+                <div className="panel-section">
+                  <h3>{t("chart_vo2_evolution")}</h3>
+                  <div style={{ height: 180 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={vo2Data}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--pitch-line)" />
+                        <XAxis dataKey="name" tick={{ fill: "var(--chalk-dim)", fontSize: 10 }} />
+                        <YAxis tick={{ fill: "var(--chalk-dim)", fontSize: 11 }} />
+                        <Tooltip contentStyle={{ background: "var(--pitch-mid)", border: "1px solid var(--pitch-line)", color: "var(--chalk)" }} />
+                        <Line type="monotone" dataKey="VO2max" stroke="var(--red)" strokeWidth={2} dot={{ r: 3 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
-
-      <div className="two-col">
-        {vmaData.length > 1 && (
-          <div className="panel">
-            <h3>{t("chart_vma_evolution")}</h3>
-            <div style={{ height: 180 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={vmaData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--pitch-line)" />
-                  <XAxis dataKey="name" tick={{ fill: "var(--chalk-dim)", fontSize: 10 }} />
-                  <YAxis tick={{ fill: "var(--chalk-dim)", fontSize: 11 }} />
-                  <Tooltip contentStyle={{ background: "var(--pitch-mid)", border: "1px solid var(--pitch-line)", color: "var(--chalk)" }} />
-                  <Line type="monotone" dataKey="VMA" stroke="var(--yellow)" strokeWidth={2} dot={{ r: 3 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
-        {vo2Data.length > 1 && (
-          <div className="panel">
-            <h3>{t("chart_vo2_evolution")}</h3>
-            <div style={{ height: 180 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={vo2Data}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--pitch-line)" />
-                  <XAxis dataKey="name" tick={{ fill: "var(--chalk-dim)", fontSize: 10 }} />
-                  <YAxis tick={{ fill: "var(--chalk-dim)", fontSize: 11 }} />
-                  <Tooltip contentStyle={{ background: "var(--pitch-mid)", border: "1px solid var(--pitch-line)", color: "var(--chalk)" }} />
-                  <Line type="monotone" dataKey="VO2max" stroke="var(--red)" strokeWidth={2} dot={{ r: 3 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
-      </div>
 
       <div className="panel">
         <h3>{t("panel_match_history")}</h3>
