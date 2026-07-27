@@ -3,7 +3,7 @@ import { Plus, Trash2, Pencil } from "lucide-react";
 import { useLang } from "../lib/i18n";
 import {
   Badge, Modal, DateField,
-  BODY_PARTS, INJURY_TYPES, INJURY_SEVERITIES,
+  BODY_PARTS, INJURY_TYPES, INJURY_SEVERITIES, BODY_PART_KEYS, INJURY_TYPE_KEYS, INJURY_SEVERITY_KEYS,
   newInjury, injuryStatus, aggregateInjuries, formatDate,
 } from "../lib/shared";
 
@@ -29,18 +29,18 @@ function InjuryForm({ players, initial, onSave, onClose }) {
         <label>{t("injury_body_part")}
           <select value={form.bodyPart} onChange={(e) => setForm({ ...form, bodyPart: e.target.value })}>
             <option value="">—</option>
-            {BODY_PARTS.map((b) => <option key={b} value={b}>{b}</option>)}
+            {BODY_PARTS.map((b) => <option key={b} value={b}>{t(BODY_PART_KEYS[b])}</option>)}
           </select>
         </label>
         <label>{t("injury_type")}
           <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
             <option value="">—</option>
-            {INJURY_TYPES.map((ty) => <option key={ty} value={ty}>{ty}</option>)}
+            {INJURY_TYPES.map((ty) => <option key={ty} value={ty}>{t(INJURY_TYPE_KEYS[ty])}</option>)}
           </select>
         </label>
         <label>{t("injury_severity")}
           <select value={form.severity} onChange={(e) => setForm({ ...form, severity: e.target.value })}>
-            {INJURY_SEVERITIES.map((s) => <option key={s} value={s}>{s}</option>)}
+            {INJURY_SEVERITIES.map((s) => <option key={s} value={s}>{t(INJURY_SEVERITY_KEYS[s])}</option>)}
           </select>
         </label>
         <label>{t("injury_expected_return")}<DateField value={form.expectedReturn} onChange={(v) => setForm({ ...form, expectedReturn: v })} /></label>
@@ -72,16 +72,30 @@ export function Injuries({ players, injuries, setInjuries, availabilities, setAv
   const save = (form, linkAvailability) => {
     const exists = injuries.some((i) => i.id === form.id);
     setInjuries(exists ? injuries.map((i) => (i.id === form.id ? form : i)) : [...injuries, form]);
+    const linkedAvId = form.id + "-av";
     if (!exists && linkAvailability && form.playerId && form.date) {
       setAvailabilities([...availabilities, {
-        id: form.id + "-av", playerId: form.playerId, status: "Blessé",
+        id: linkedAvId, playerId: form.playerId, status: "Blessé",
         startDate: form.date, endDate: form.expectedReturn || "", note: t("injury_auto_note"),
       }]);
+    } else if (exists && availabilities.some((a) => a.id === linkedAvId)) {
+      // La blessure a une disponibilité liée (créée automatiquement) : on la garde synchronisée
+      // avec les dates de la blessure quand celles-ci sont modifiées.
+      setAvailabilities(availabilities.map((a) => (
+        a.id === linkedAvId ? { ...a, startDate: form.date, endDate: form.expectedReturn || "" } : a
+      )));
     }
     setShowForm(false);
     setEditing(null);
   };
-  const remove = (id) => { if (confirm(t("confirm_delete_injury"))) setInjuries(injuries.filter((i) => i.id !== id)); };
+  const remove = (id) => {
+    if (!confirm(t("confirm_delete_injury"))) return;
+    setInjuries(injuries.filter((i) => i.id !== id));
+    const linkedAvId = id + "-av";
+    if (availabilities.some((a) => a.id === linkedAvId)) {
+      setAvailabilities(availabilities.filter((a) => a.id !== linkedAvId));
+    }
+  };
 
   return (
     <div>
@@ -98,7 +112,7 @@ export function Injuries({ players, injuries, setInjuries, availabilities, setAv
             {bodyPartRanking.map((r, i) => (
               <div key={r.part} className="rank-card">
                 <span className="rank-card-number">{i + 1}</span>
-                <div className="rank-card-info"><div className="rank-card-name">{r.part}</div></div>
+                <div className="rank-card-info"><div className="rank-card-name">{t(BODY_PART_KEYS[r.part]) || r.part}</div></div>
                 <span className="rank-card-value">{r.count}</span>
               </div>
             ))}
@@ -138,9 +152,9 @@ export function Injuries({ players, injuries, setInjuries, availabilities, setAv
                   <tr key={i.id}>
                     <td>{p ? p.name : "—"}</td>
                     <td className="mono">{formatDate(i.date)}</td>
-                    <td>{i.bodyPart || "—"}</td>
-                    <td>{i.type || "—"}</td>
-                    <td><span className="status-chip" style={{ background: SEVERITY_COLORS[i.severity] }}>{i.severity}</span></td>
+                    <td>{i.bodyPart ? t(BODY_PART_KEYS[i.bodyPart]) : "—"}</td>
+                    <td>{i.type ? t(INJURY_TYPE_KEYS[i.type]) : "—"}</td>
+                    <td><span className="status-chip" style={{ background: SEVERITY_COLORS[i.severity] }}>{t(INJURY_SEVERITY_KEYS[i.severity])}</span></td>
                     <td className="mono">{i.expectedReturn ? formatDate(i.expectedReturn) : "—"}</td>
                     <td><span className="status-chip" style={{ background: STATUS_COLORS[status] }}>{t(STATUS_KEYS[status])}</span></td>
                     <td style={{ display: "flex", gap: 4 }}>

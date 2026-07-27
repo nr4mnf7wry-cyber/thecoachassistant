@@ -389,6 +389,7 @@ export default function App() {
         .player-name { font-weight:600; font-size:14px; white-space:nowrap; }
         .effectif-table th:first-child, .effectif-table td:first-child { min-width:200px; white-space:nowrap; }
         .table-group-row td { background:rgba(15,23,42,0.03); font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.03em; color:var(--chalk-dim); padding:7px 10px; }
+        .table-group-row-muted td { background:rgba(220,38,38,0.05); color:var(--red); }
         .hover-reveal { opacity:0; transition:opacity 0.12s ease; }
         .hover-reveal-row:hover .hover-reveal { opacity:1; }
         .icon-btn.active { background:rgba(37,99,235,0.1); border-color:var(--gold); color:var(--gold); }
@@ -455,6 +456,14 @@ export default function App() {
         .player-identity-stat { display:flex; flex-direction:column; }
         .player-identity-stat-value { font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:20px; color:var(--chalk); }
         .player-identity-stat-label { font-size:11.5px; color:var(--chalk-dim); }
+        .dash-greeting { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+        .dash-grid-top { display:grid; grid-template-columns:2fr 1fr; gap:14px; margin-bottom:14px; }
+        .dash-next-title { font-size:19px; font-weight:600; color:var(--chalk); }
+        .dash-stat-value { font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:22px; color:var(--chalk); }
+        .dash-alerts-card.has-alerts { background:rgba(220,38,38,0.04); border-color:rgba(220,38,38,0.25); }
+        .dash-alerts-count { display:flex; align-items:center; gap:8px; font-weight:600; font-size:15px; color:var(--red); }
+        .dash-alerts-card p { color:var(--chalk); }
+        .dash-grid-metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:14px; }
         .tactical-pitch-wrap { display:flex; justify-content:center; }
         .tactical-pitch-svg { width:100%; max-width:320px; height:auto; border-radius:10px; border:1px solid var(--pitch-line); box-shadow:0 2px 8px rgba(15,23,42,0.06); }
         .chip-grid { display:flex; flex-wrap:wrap; gap:8px; }
@@ -525,6 +534,8 @@ export default function App() {
           .topbar { padding:12px 20px; flex-wrap:wrap; }
           .global-search { max-width:none; order:3; flex-basis:100%; }
           .two-col { grid-template-columns:1fr; }
+          .dash-grid-top { grid-template-columns:1fr; }
+          .dash-grid-metrics { grid-template-columns:1fr 1fr; }
           .match-list-row { grid-template-columns:1fr; gap:4px; }
         }
       `}</style>

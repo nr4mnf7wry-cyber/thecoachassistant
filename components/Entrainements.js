@@ -5,6 +5,7 @@ import {
   uid, Badge, Modal, MetricCard,
   EXERCISE_CATEGORIES, EXERCISE_CATEGORY_KEYS, emptyAttendance, emptyExercise, aggregateTrainings,
   isPlayerUnavailable, DEFAULT_SEASON, addDaysToDateStr, formatDate, DateField, useSelection, clamp,
+  POSITIONS, POSITION_KEYS,
 } from "../lib/shared";
 
 const EXERCISE_CATEGORY_ICONS = {
@@ -331,44 +332,66 @@ export function EntrainementDetail({ trainingId, players, trainings, setTraining
         </div>
         <p className="muted" style={{ marginBottom: 10 }}>{t("uncheck_hint")}</p>
         {trackedPlayers.length === 0 && <p className="muted">{t("no_players_first")}</p>}
-        {trackedPlayers.length > 0 && (
-          <table className="stats-table entry-table">
-            <thead>
-              <tr>
-                <th>{t("th_player")}</th><th>{t("field_status")}</th><th>{t("th_rpe")}</th>
-                {training.isPhysicalTest && <th>{t("th_vma_kmh")}</th>}
-                <th>{t("th_reason")}</th><th />
+        {trackedPlayers.length > 0 && (() => {
+          const rowsWithAttendance = trackedPlayers.map((p) => ({ p, a: attendance[p.id] || emptyAttendance() }));
+          const presentRows = rowsWithAttendance.filter((r) => r.a.present);
+          const absentRows = rowsWithAttendance.filter((r) => !r.a.present);
+          const presentGroups = [...POSITIONS, ""].map((pos) => ({
+            position: pos,
+            rows: presentRows.filter((r) => (r.p.position || "") === pos),
+          })).filter((g) => g.rows.length > 0);
+          const renderRow = ({ p, a }) => {
+            const isGuest = (p.status || "titulaire") === "invite";
+            return (
+              <tr key={p.id}>
+                <td>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <Badge number={p.number} size={26} /><span>{p.name}</span>
+                    {isGuest && <span className="status-chip" style={{ background: "var(--chalk-dim)" }}>{t("badge_guest")}</span>}
+                  </div>
+                </td>
+                <td>
+                  <select value={a.statut || "Présent"} onChange={(e) => update(p.id, "statut", e.target.value)}>
+                    {STATUSES.map((s) => <option key={s} value={s}>{t(STATUS_LABEL_KEYS[s])}</option>)}
+                  </select>
+                </td>
+                <td><input className="cell-input" type="number" min="0" max="10" disabled={!a.present} value={a.rpe} onChange={(e) => update(p.id, "rpe", e.target.value)} /></td>
+                {training.isPhysicalTest && (
+                  <td><input className="cell-input" type="number" step="0.1" disabled={!a.present} value={a.vma} onChange={(e) => update(p.id, "vma", e.target.value)} /></td>
+                )}
+                <td><input className="cell-input" style={{ width: 140 }} disabled={a.present} value={a.raison} onChange={(e) => update(p.id, "raison", e.target.value)} placeholder="—" /></td>
+                <td>{isGuest && <button className="icon-btn" onClick={() => removeGuestFromSession(p.id)}><Trash2 size={13} /></button>}</td>
               </tr>
-            </thead>
-            <tbody>
-              {trackedPlayers.map((p) => {
-                const a = attendance[p.id] || emptyAttendance();
-                const isGuest = (p.status || "titulaire") === "invite";
-                return (
-                  <tr key={p.id}>
-                    <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <Badge number={p.number} size={26} /><span>{p.name}</span>
-                        {isGuest && <span className="status-chip" style={{ background: "var(--chalk-dim)" }}>{t("badge_guest")}</span>}
-                      </div>
-                    </td>
-                    <td>
-                      <select value={a.statut || "Présent"} onChange={(e) => update(p.id, "statut", e.target.value)}>
-                        {STATUSES.map((s) => <option key={s} value={s}>{t(STATUS_LABEL_KEYS[s])}</option>)}
-                      </select>
-                    </td>
-                    <td><input className="cell-input" type="number" min="0" max="10" disabled={!a.present} value={a.rpe} onChange={(e) => update(p.id, "rpe", e.target.value)} /></td>
-                    {training.isPhysicalTest && (
-                      <td><input className="cell-input" type="number" step="0.1" disabled={!a.present} value={a.vma} onChange={(e) => update(p.id, "vma", e.target.value)} /></td>
-                    )}
-                    <td><input className="cell-input" style={{ width: 140 }} disabled={a.present} value={a.raison} onChange={(e) => update(p.id, "raison", e.target.value)} placeholder="—" /></td>
-                    <td>{isGuest && <button className="icon-btn" onClick={() => removeGuestFromSession(p.id)}><Trash2 size={13} /></button>}</td>
+            );
+          };
+          return (
+            <table className="stats-table entry-table">
+              <thead>
+                <tr>
+                  <th>{t("th_player")}</th><th>{t("field_status")}</th><th>{t("th_rpe")}</th>
+                  {training.isPhysicalTest && <th>{t("th_vma_kmh")}</th>}
+                  <th>{t("th_reason")}</th><th />
+                </tr>
+              </thead>
+              {presentGroups.map((g) => (
+                <tbody key={g.position || "none"}>
+                  <tr className="table-group-row">
+                    <td colSpan={training.isPhysicalTest ? 6 : 5}>{g.position ? t(POSITION_KEYS[g.position]) : t("column_no_position")}</td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+                  {g.rows.map(renderRow)}
+                </tbody>
+              ))}
+              {absentRows.length > 0 && (
+                <tbody>
+                  <tr className="table-group-row table-group-row-muted">
+                    <td colSpan={training.isPhysicalTest ? 6 : 5}>{t("attendance_absent_group")}</td>
+                  </tr>
+                  {absentRows.map(renderRow)}
+                </tbody>
+              )}
+            </table>
+          );
+        })()}
         <p className="muted" style={{ marginTop: 10 }}>{t("autosave_note")}</p>
       </div>
 

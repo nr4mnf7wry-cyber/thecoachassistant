@@ -22,15 +22,17 @@ function daysSince(dateStr) {
 }
 
 export function Dashboard({ players, matches, trainings, availabilities, setView }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const today = todayStr();
+  const todayLongLabel = useMemo(() => {
+    const label = new Date().toLocaleDateString(lang === "nl" ? "nl-BE" : "fr-BE", { weekday: "long", day: "numeric", month: "long" });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  }, [lang]);
   const playedMatches = useMemo(() => matches.filter((m) => isMatchPlayed(m)), [matches]);
 
   const workload = useMemo(() => computeACWR(players, trainings, today).filter((w) => w.ratio !== null).sort((a, b) => b.ratio - a.ratio), [players, trainings, today]);
 
   const agg = useMemo(() => aggregateMatches(players, playedMatches), [players, playedMatches]);
-
-  const nextMatch = [...matches].filter((m) => m.date >= today).sort((a, b) => (a.date > b.date ? 1 : -1))[0] || null;
 
   const unavailableNow = useMemo(() => {
     return (availabilities || [])
@@ -83,26 +85,74 @@ export function Dashboard({ players, matches, trainings, availabilities, setView
     return list;
   }, [playedMatches, availabilities, agg, players, today, t]);
 
+  const nextEvent = upcomingEvents[0] || null;
+  const nextEventAvailable = nextEvent
+    ? (nextEvent.type === "training"
+        ? players.filter((p) => (nextEvent.raw.attendance?.[p.id]?.present ?? true)).length
+        : players.filter((p) => !isPlayerUnavailable(availabilities, p.id, nextEvent.date)).length)
+    : null;
+  const recentTrainingsCount = useMemo(() => {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+    const cutoffStr = cutoff.toISOString().slice(0, 10);
+    return trainings.filter((tr) => tr.date >= cutoffStr && tr.date <= today).length;
+  }, [trainings, today]);
+  const avgLoad = workload.length ? Math.round((workload.reduce((s, w) => s + w.ratio, 0) / workload.length) * 100) / 100 : null;
+
   return (
     <div>
-      <div className="pitch-hero">
-        <svg className="pitch-lines" viewBox="0 0 400 120" preserveAspectRatio="none">
-          <defs>
-            <pattern id="analystGrid" width="24" height="24" patternUnits="userSpaceOnUse">
-              <path d="M 24 0 L 0 0 0 24" fill="none" stroke="var(--pitch-line)" strokeWidth="1" />
-            </pattern>
-          </defs>
-          <rect width="400" height="120" fill="url(#analystGrid)" />
-          <path d="M8 2 L2 2 2 8" fill="none" stroke="var(--gold)" strokeWidth="1.5" opacity="0.6" />
-          <path d="M392 2 L398 2 398 8" fill="none" stroke="var(--gold)" strokeWidth="1.5" opacity="0.6" />
-          <path d="M8 118 L2 118 2 112" fill="none" stroke="var(--gold)" strokeWidth="1.5" opacity="0.6" />
-          <path d="M392 118 L398 118 398 112" fill="none" stroke="var(--gold)" strokeWidth="1.5" opacity="0.6" />
-        </svg>
-        <div className="pitch-hero-content">
-          <div className="eyebrow">{t("dash_eyebrow")}</div>
-          <h1>{t("dash_title")}</h1>
-          <p>{playedMatches.length} {playedMatches.length > 1 ? t("word_matches") : t("word_match")} · {trainings.length} {trainings.length > 1 ? t("word_sessions") : t("word_session")} · {players.length} {players.length > 1 ? t("word_players") : t("word_player")}</p>
+      <div className="dash-greeting">
+        <div>
+          <p className="muted mono" style={{ fontSize: 12.5, margin: "0 0 2px" }}>{todayLongLabel}</p>
+          <h1 style={{ margin: 0 }}>{t("dash_greeting")}</h1>
         </div>
+        <span className="muted" style={{ fontSize: 13 }}>{players.length} {players.length > 1 ? t("word_players") : t("word_player")} · {playedMatches.length} {playedMatches.length > 1 ? t("word_matches") : t("word_match")}</span>
+      </div>
+
+      <div className="dash-grid-top">
+        <div className="panel dash-next-card">
+          <p className="muted mono" style={{ fontSize: 11, textTransform: "uppercase", marginBottom: 6 }}>{t("panel_next_event")}</p>
+          {!nextEvent && <p className="muted">{t("no_upcoming_events")}</p>}
+          {nextEvent && (
+            <>
+              <div className="dash-next-title" style={{ cursor: nextEvent.type === "match" && setView ? "pointer" : "default" }} onClick={() => nextEvent.type === "match" && setView && setView("match:" + nextEvent.raw.id)}>
+                {nextEvent.label}
+              </div>
+              <p className="muted" style={{ margin: "2px 0 14px" }}>{formatDate(nextEvent.date)}{nextEvent.type === "match" ? ` · ${nextEvent.raw.homeAway === "domicile" ? t("home") : t("away")}` : ""}</p>
+              <div style={{ display: "flex", gap: 28, alignItems: "flex-end", flexWrap: "wrap" }}>
+                <div>
+                  <span className="dash-stat-value">{nextEventAvailable}</span>
+                  <span className="muted" style={{ fontSize: 12.5 }}>/{players.length} {t("dash_available_label")}</span>
+                </div>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {form.length === 0 && <span className="muted" style={{ fontSize: 12.5 }}>{t("no_matches_yet")}</span>}
+                  {form.map((m) => {
+                    const r = resultOf(m);
+                    const label = r === "W" ? t("result_w") : r === "D" ? t("result_d") : t("result_l");
+                    const color = r === "W" ? "var(--gold)" : r === "D" ? "var(--chalk-dim)" : "var(--red)";
+                    return <span key={m.id} className="status-chip" style={{ background: color }} title={m.opponent}>{label}</span>;
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+        <div className={"panel dash-alerts-card" + (alerts.length > 0 ? " has-alerts" : "")}>
+          <p className="muted mono" style={{ fontSize: 11, textTransform: "uppercase", marginBottom: 6 }}>{t("panel_alerts")}</p>
+          {alerts.length === 0 && <p className="muted" style={{ fontSize: 13 }}>{t("no_alerts")}</p>}
+          {alerts.length > 0 && (
+            <>
+              <div className="dash-alerts-count"><AlertTriangle size={18} />{alerts.length} {alerts.length > 1 ? t("dash_alerts_plural") : t("dash_alerts_singular")}</div>
+              {alerts.slice(0, 2).map((a, i) => <p key={i} style={{ fontSize: 12.5, margin: "6px 0 0" }}>{a.text}</p>)}
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="dash-grid-metrics">
+        <div className="metric-card"><div><div className="metric-value">{unavailableNow.length}</div><div className="metric-label">{t("panel_unavailable_now")}</div></div></div>
+        <div className="metric-card"><div><div className="metric-value">{recentTrainingsCount}</div><div className="metric-label">{t("dash_recent_sessions")}</div></div></div>
+        <div className="metric-card"><div><div className="metric-value">{avgLoad ?? "—"}</div><div className="metric-label">{t("dash_avg_load")}</div></div></div>
       </div>
 
       <div className="panel">
@@ -146,43 +196,6 @@ export function Dashboard({ players, matches, trainings, availabilities, setView
           </div>
         </div>
       )}
-
-      <div className="two-col">
-        <div className="panel">
-          <h3>{t("panel_next_match")}</h3>
-          {!nextMatch && <p className="muted">{t("no_next_match")}</p>}
-          {nextMatch && (
-            <div className="match-row" style={{ cursor: setView ? "pointer" : "default" }} onClick={() => setView && setView("match:" + nextMatch.id)}>
-              <span className="mono muted">{formatDate(nextMatch.date)}</span>
-              <span>vs {nextMatch.opponent}</span>
-              <span className="muted">{nextMatch.homeAway === "domicile" ? t("home") : t("away")}</span>
-            </div>
-          )}
-          <h3 style={{ marginTop: 18 }}>{t("panel_form")}</h3>
-          <div style={{ display: "flex", gap: 8 }}>
-            {form.length === 0 && <p className="muted">{t("no_matches_yet")}</p>}
-            {form.map((m) => {
-              const r = resultOf(m);
-              const label = r === "W" ? t("result_w") : r === "D" ? t("result_d") : t("result_l");
-              const color = r === "W" ? "var(--gold)" : r === "D" ? "var(--chalk-dim)" : "var(--red)";
-              return <span key={m.id} className="status-chip" style={{ background: color }} title={m.opponent}>{label}</span>;
-            })}
-          </div>
-        </div>
-        <div className="panel">
-          <h3>{t("panel_alerts")}</h3>
-          {alerts.length === 0 && <p className="muted">{t("no_alerts")}</p>}
-          {alerts.map((a, i) => {
-            const Icon = a.icon;
-            return (
-              <div key={i} className="match-row">
-                <Icon size={16} style={{ color: "var(--yellow)", flexShrink: 0 }} />
-                <span>{a.text}</span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
 
       <div className="panel">
         <h3>{t("panel_workload_risk")}</h3>
