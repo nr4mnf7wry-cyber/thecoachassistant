@@ -61,14 +61,14 @@ function GoalTypeSelect({ value, onChange }) {
 }
 
 function TacticalPitch({ rowSlices, slots, players, selected, onSlotClick }) {
-  const line = "#C3C9D3";
+  const line = "var(--pitch-line)";
   const nRows = rowSlices.length;
   const rowY = (rowIdx) => (nRows <= 1 ? 220 : 400 - rowIdx * (360 / (nRows - 1)));
   const colX = (i, k) => (k <= 0 ? 150 : ((i + 1) * 300) / (k + 1));
 
   return (
     <svg viewBox="0 0 300 450" className="tactical-pitch-svg">
-      <rect x="0" y="0" width="300" height="450" fill="#FCFCFD" />
+      <rect x="0" y="0" width="300" height="450" fill="var(--pitch-mid)" />
       <rect x="3" y="3" width="294" height="444" fill="none" stroke={line} strokeWidth="2" />
       <line x1="3" y1="225" x2="297" y2="225" stroke={line} strokeWidth="2" />
       <circle cx="150" cy="225" r="42" fill="none" stroke={line} strokeWidth="2" />
@@ -86,17 +86,17 @@ function TacticalPitch({ rowSlices, slots, players, selected, onSlotClick }) {
             <g key={index} onClick={() => onSlotClick(index)} style={{ cursor: "pointer" }}>
               <circle
                 cx={x} cy={y} r="17"
-                fill={isSelected ? "var(--gold)" : p ? "rgba(37,99,235,0.12)" : "rgba(15,23,42,0.03)"}
-                stroke={isSelected ? "var(--gold)" : p ? "var(--gold)" : "rgba(15,23,42,0.18)"}
+                fill={isSelected ? "var(--gold)" : p ? "rgba(var(--gold-rgb),0.12)" : "var(--hover-tint)"}
+                stroke={isSelected ? "var(--gold)" : p ? "var(--gold)" : "var(--pitch-line)"}
                 strokeWidth={isSelected ? 2.5 : 1.5}
               />
               {p ? (
                 <text x={x} y={y + 4} textAnchor="middle" fontSize="12" fontWeight="700" fill={isSelected ? "var(--on-accent)" : "var(--gold)"}>{p.number || "?"}</text>
               ) : (
-                <text x={x} y={y + 4} textAnchor="middle" fontSize="13" fill="#9CA3AF">+</text>
+                <text x={x} y={y + 4} textAnchor="middle" fontSize="13" fill="var(--chalk-dim)">+</text>
               )}
               {p && (
-                <text x={x} y={y + 30} textAnchor="middle" fontSize="9.5" fontWeight="600" fill="#5B6472">
+                <text x={x} y={y + 30} textAnchor="middle" fontSize="9.5" fontWeight="600" fill="var(--chalk-dim)">
                   {p.name.length > 12 ? p.name.slice(0, 11) + "…" : p.name}
                 </text>
               )}

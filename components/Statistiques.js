@@ -110,7 +110,7 @@ export function Statistiques({ players, matches, trainings, evaluations }) {
             <MetricCard label={t("metric_best_avg")} value={bestAvgCard ? `${bestAvgCard.player.name} (${bestAvgCard.avgNote})` : "—"} icon={BarChart3} />
           </div>
 
-          <div className="panel">
+          <div style={{ marginBottom: 24 }}>
             <h3>{t("panel_top5")}</h3>
             {topFive.length === 0 && <p className="muted">{t("no_stats_yet")}</p>}
             {topFive.map((a, i) => (

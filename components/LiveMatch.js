@@ -26,10 +26,10 @@ const ZONE_RECTS = {
 
 export function LivePitch({ zone, onSelect }) {
   const { t } = useLang();
-  const line = "#C3C9D3";
+  const line = "var(--pitch-line)";
   return (
     <svg viewBox="0 0 300 450" className="live-pitch-svg">
-      <rect x="0" y="0" width="300" height="450" fill="#FCFCFD" />
+      <rect x="0" y="0" width="300" height="450" fill="var(--pitch-mid)" />
       <rect x="3" y="3" width="294" height="444" fill="none" stroke={line} strokeWidth="2" />
       <line x1="3" y1="225" x2="297" y2="225" stroke={line} strokeWidth="2" />
       <circle cx="150" cy="225" r="42" fill="none" stroke={line} strokeWidth="2" />
@@ -45,12 +45,12 @@ export function LivePitch({ zone, onSelect }) {
           <g key={z} onClick={() => onSelect(z)} style={{ cursor: "pointer" }}>
             <rect
               x={x + 2} y={y + 2} width={w - 4} height={h - 4}
-              fill={selected ? "rgba(37,99,235,0.12)" : "rgba(15,23,42,0.015)"}
-              stroke={selected ? "var(--gold)" : "rgba(15,23,42,0.10)"}
+              fill={selected ? "rgba(var(--gold-rgb),0.12)" : "var(--hover-tint)"}
+              stroke={selected ? "var(--gold)" : "var(--pitch-line)"}
               strokeWidth={selected ? 2.5 : 1}
               rx="4"
             />
-            <text x={x + w / 2} y={y + h / 2} textAnchor="middle" dominantBaseline="middle" fontSize="13" fontWeight="600" fill={selected ? "var(--gold)" : "#5B6472"}>
+            <text x={x + w / 2} y={y + h / 2} textAnchor="middle" dominantBaseline="middle" fontSize="13" fontWeight="600" fill={selected ? "var(--gold)" : "var(--chalk-dim)"}>
               {t(ZONE_LABEL_KEYS[z])}
             </text>
           </g>

@@ -190,17 +190,17 @@ export function Concurrents({ leagueMatches, opponentProfiles, initialTeam }) {
             <div className="metric-card"><div><div className="metric-value">{stats.avgGf} / {stats.avgGa}</div><div className="metric-label">{t("league_avg_goals")}</div></div></div>
           </div>
 
-          <div className="panel panel-sections">
-            <div className="panel-section">
-              <h3>{t("panel_form")}</h3>
-              <div style={{ display: "flex", gap: 8 }}>
-                {stats.form.length === 0 && <p className="muted">{t("no_matches_yet")}</p>}
-                {stats.form.map((r, i) => (
-                  <span key={i} className="status-chip" style={{ background: RESULT_COLORS[r] }}>{t(RESULT_KEYS[r])}</span>
-                ))}
-              </div>
+          <div style={{ marginBottom: 20 }}>
+            <h3>{t("panel_form")}</h3>
+            <div style={{ display: "flex", gap: 8 }}>
+              {stats.form.length === 0 && <p className="muted">{t("no_matches_yet")}</p>}
+              {stats.form.map((r, i) => (
+                <span key={i} className="status-chip" style={{ background: RESULT_COLORS[r] }}>{t(RESULT_KEYS[r])}</span>
+              ))}
             </div>
+          </div>
 
+          <div className="panel panel-sections">
             <div className="panel-section panel-sections-v" style={{ padding: 0 }}>
               <div className="panel-section">
                 <Leaderboard title={t("league_top_scorers")} rows={stats.topScorers} columns={[{ key: "goals", label: t("th_goals_short") }]} />
@@ -255,7 +255,7 @@ export function Concurrents({ leagueMatches, opponentProfiles, initialTeam }) {
               <thead><tr><th>#</th><th>{t("field_name")}</th><th>{t("th_main_position")}</th><th>{t("rating_label")}</th></tr></thead>
               <tbody>
                 {profileAppearances.map((a) => (
-                  <tr key={a.id} style={{ background: a.rating === "strength" ? "rgba(76,141,255,0.08)" : a.rating === "weakness" ? "rgba(229,72,77,0.08)" : undefined }}>
+                  <tr key={a.id} style={{ background: a.rating === "strength" ? "rgba(var(--gold-rgb),0.08)" : a.rating === "weakness" ? "rgba(var(--red-rgb),0.08)" : undefined }}>
                     <td className="mono">{a.number || "—"}</td>
                     <td>{a.player}</td>
                     <td>{a.position || "—"}</td>

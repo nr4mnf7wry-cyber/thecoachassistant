@@ -241,7 +241,7 @@ export function RosterColumn({ teamLabel, teamName, match, patch, showRating, al
     e.target.value = "";
   };
 
-  const ratingBg = (r) => (r === "strength" ? "rgba(76,141,255,0.08)" : r === "weakness" ? "rgba(229,72,77,0.08)" : undefined);
+  const ratingBg = (r) => (r === "strength" ? "rgba(var(--gold-rgb),0.08)" : r === "weakness" ? "rgba(var(--red-rgb),0.08)" : undefined);
 
   return (
     <div className="panel">

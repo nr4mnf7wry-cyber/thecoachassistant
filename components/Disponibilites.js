@@ -5,7 +5,7 @@ import { uid, Modal, DateField, UNAVAILABILITY_STATUSES, AVAILABILITY_KEYS, toda
 
 const STATUS_COLORS = {
   "Disponible": "var(--gold)", "Absent": "#DC2626", "Vacances": "#EA580C",
-  "Blessé": "#A16207", "Suspendu": "#7C3AED", "Travail": "#111827", "Autre": "#6B7280",
+  "Blessé": "#A16207", "Suspendu": "#7C3AED", "Travail": "#475569", "Autre": "#6B7280",
 };
 const statusChipStyle = (status) => ({
   background: STATUS_COLORS[status] || STATUS_COLORS.Autre,
