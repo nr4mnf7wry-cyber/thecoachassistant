@@ -200,6 +200,7 @@ export function Dashboard({ players, matches, trainings, availabilities, setView
       <div className="dash-plain">
         <h3>{t("panel_workload_risk")}</h3>
         {workload.length === 0 && <p className="muted">{t("no_workload_data")}</p>}
+        <div className="rank-card-grid">
         {workload.slice(0, 8).map((w, i) => (
           <div key={w.player.id} className="rank-card">
             <span className="rank-card-number">{i + 1}</span>
@@ -211,6 +212,7 @@ export function Dashboard({ players, matches, trainings, availabilities, setView
             <span className="status-chip" style={{ background: ZONE_COLORS[w.zone] }}>{t(ZONE_KEYS[w.zone])}</span>
           </div>
         ))}
+        </div>
       </div>
     </div>
   );

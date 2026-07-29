@@ -4,7 +4,7 @@ import { useLang } from "../lib/i18n";
 import {
   uid, Badge, Modal, MetricCard,
   EXERCISE_CATEGORIES, EXERCISE_CATEGORY_KEYS, emptyAttendance, emptyExercise, aggregateTrainings,
-  isPlayerUnavailable, DEFAULT_SEASON, addDaysToDateStr, formatDate, DateField, useSelection, clamp,
+  isPlayerUnavailable, DEFAULT_SEASON, addDaysToDateStr, formatDate, DateField, useSelection, clamp, todayStr,
   POSITIONS, POSITION_KEYS,
 } from "../lib/shared";
 
@@ -110,6 +110,7 @@ function LibraryPicker({ exerciseLibrary, onPick, onClose }) {
 export function Entrainements({ players, trainings, setTrainings, availabilities, currentSeason, setView }) {
   const { t } = useLang();
   const [showForm, setShowForm] = useState(false);
+  const [subTab, setSubTab] = useState("upcoming");
   const { selected, toggle: toggleSelect, clear: clearSelection } = useSelection();
   const save = (form) => {
     const { recurring, recurUntil, ...base } = form;
@@ -139,6 +140,10 @@ export function Entrainements({ players, trainings, setTrainings, availabilities
   const sorted = [...trainings]
     .filter((t2) => (t2.season || DEFAULT_SEASON) === currentSeason)
     .sort((a, b) => (a.date > b.date ? 1 : -1));
+  const today = todayStr();
+  const upcoming = sorted.filter((t2) => t2.date >= today);
+  const past = [...sorted].filter((t2) => t2.date < today).reverse();
+  const visibleSessions = subTab === "upcoming" ? upcoming : past;
 
   const removeOne = (id) => { if (confirm(t("confirm_delete_session"))) setTrainings(trainings.filter((t2) => t2.id !== id)); };
   const removeSelected = () => {
@@ -160,9 +165,13 @@ export function Entrainements({ players, trainings, setTrainings, availabilities
           <button className="btn-gold" onClick={() => setShowForm(true)}><Plus size={16} /> {t("entr_add")}</button>
         </div>
       </div>
-      {sorted.length === 0 && <p className="muted">{t("entr_none")}</p>}
+      <div className="tab-bar">
+        <button className={"tab-btn" + (subTab === "upcoming" ? " active" : "")} onClick={() => setSubTab("upcoming")}>{t("entr_tab_upcoming")} ({upcoming.length})</button>
+        <button className={"tab-btn" + (subTab === "past" ? " active" : "")} onClick={() => setSubTab("past")}>{t("entr_tab_past")} ({past.length})</button>
+      </div>
+      {visibleSessions.length === 0 && <p className="muted">{subTab === "upcoming" ? t("entr_none_upcoming") : t("entr_none_past")}</p>}
       <div className="panel" style={{ padding: 0 }}>
-        {sorted.map((t2) => {
+        {visibleSessions.map((t2) => {
           const trackedPlayers = players.filter((p) => (p.status || "titulaire") !== "invite" || t2.attendance?.[p.id]);
           const presentCount = trackedPlayers.filter((p) => (t2.attendance?.[p.id]?.present ?? true)).length;
           const trackedCount = trackedPlayers.length;

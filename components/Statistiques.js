@@ -113,6 +113,7 @@ export function Statistiques({ players, matches, trainings, evaluations }) {
           <div style={{ marginBottom: 24 }}>
             <h3>{t("panel_top5")}</h3>
             {topFive.length === 0 && <p className="muted">{t("no_stats_yet")}</p>}
+            <div className="rank-card-grid">
             {topFive.map((a, i) => (
               <div key={a.player.id} className="rank-card">
                 <span className="rank-card-number">{i + 1}</span>
@@ -124,6 +125,7 @@ export function Statistiques({ players, matches, trainings, evaluations }) {
                 <span className="rank-card-value" style={{ fontSize: 13 }}>{a.buts} {t("th_goals_short")} · {a.passes} {t("th_assists_short")}</span>
               </div>
             ))}
+            </div>
           </div>
 
           {matches.length > 0 && (
@@ -182,6 +184,7 @@ export function Statistiques({ players, matches, trainings, evaluations }) {
           <div className="panel-section">
             <h3><Wind size={15} style={{ marginRight: 6, verticalAlign: -2 }} />{t("lb_vma")}</h3>
             {vmaTop.length === 0 && <p className="muted">{t("no_vma_yet")}</p>}
+            <div className="rank-card-grid">
             {vmaTop.map((r, i) => (
               <div key={r.player.id} className="rank-card">
                 <span className="rank-card-number">{i + 1}</span>
@@ -193,6 +196,7 @@ export function Statistiques({ players, matches, trainings, evaluations }) {
                 <span className="rank-card-value">{r.c.vma} km/h</span>
               </div>
             ))}
+            </div>
           </div>
         </div>
       )}

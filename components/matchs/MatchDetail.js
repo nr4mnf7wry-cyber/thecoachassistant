@@ -532,6 +532,16 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
   const usedInIds = subs.map((s) => s.inId);
   const availableBench = bench.filter((id) => !usedInIds.includes(id));
 
+  const lastComposedMatch = [...matches]
+    .filter((m) => m.id !== match.id && m.date < match.date && (m.lineupSlots || []).some(Boolean))
+    .sort((a, b) => (a.date > b.date ? -1 : 1))[0] || null;
+  const composeFromLast = () => {
+    if (!lastComposedMatch) return;
+    const prevFormation = lastComposedMatch.formation || "4-4-2";
+    const filteredSlots = (lastComposedMatch.lineupSlots || []).map((id) => (id && squad.includes(id) ? id : null));
+    patch({ formation: prevFormation, lineupSlots: filteredSlots, starters: filteredSlots.filter(Boolean) });
+  };
+
   const toggleSquad = (playerId) => {
     const inSquad = squad.includes(playerId);
     const nextSquad = inSquad ? squad.filter((id) => id !== playerId) : [...squad, playerId];
@@ -750,6 +760,9 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
             <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
               <h3 style={{ margin: 0 }}>{t("panel_composition_pitch")}</h3>
               <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+                {lastComposedMatch && (
+                  <button className="icon-btn" onClick={composeFromLast}>{t("compose_from_last")}</button>
+                )}
                 <label className="muted" style={{ fontSize: 12.5, display: "flex", alignItems: "center", gap: 6 }}>
                   {t("field_formation")}
                   <select value={formation} onChange={(e) => changeFormation(e.target.value)}>

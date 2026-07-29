@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Plus, Trash2, Dumbbell, CalendarDays, ChevronLeft, ChevronRight, List, Grid3x3 } from "lucide-react";
 import { useLang } from "../lib/i18n";
-import { uid, Modal, DateField, UNAVAILABILITY_STATUSES, AVAILABILITY_KEYS, todayStr, formatDate, addDaysToDateStr } from "../lib/shared";
+import { uid, Modal, DateField, UNAVAILABILITY_STATUSES, AVAILABILITY_KEYS, todayStr, formatDate, addDaysToDateStr, matchesAvailability } from "../lib/shared";
 
 const STATUS_COLORS = {
   "Disponible": "var(--gold)", "Absent": "#DC2626", "Vacances": "#EA580C",
@@ -13,13 +13,8 @@ const statusChipStyle = (status) => ({
   border: "1px solid rgba(15,23,42,0.08)",
 });
 
-function isDateInRange(dateStr, start, end) {
-  if (!start) return false;
-  return dateStr >= start && dateStr <= (end || start);
-}
-
 function statusForDate(availabilities, playerId, dateStr) {
-  const matches = availabilities.filter((a) => a.playerId === playerId && isDateInRange(dateStr, a.startDate, a.endDate));
+  const matches = availabilities.filter((a) => a.playerId === playerId && matchesAvailability(a, dateStr));
   if (!matches.length) return null; // pas d'entrée = disponible par défaut
   return matches.sort((a, b) => (a.startDate < b.startDate ? 1 : -1))[0];
 }
@@ -41,7 +36,11 @@ function DispoForm({ players, onSave, onClose }) {
     startDate: todayStr(),
     endDate: "",
     note: "",
+    recurring: false,
   });
+  const weekdayLabel = form.startDate
+    ? new Date(form.startDate + "T00:00:00").toLocaleDateString(undefined, { weekday: "long" })
+    : "";
   return (
     <Modal title={t("dispo_form_title")} onClose={onClose}>
       <div className="form-grid">
@@ -56,10 +55,25 @@ function DispoForm({ players, onSave, onClose }) {
           </select>
         </label>
         <label>{t("field_start_date")}<DateField value={form.startDate} onChange={(v) => setForm({ ...form, startDate: v })} /></label>
-        <label>{t("field_end_date")}<DateField value={form.endDate} onChange={(v) => setForm({ ...form, endDate: v })} /></label>
+        <label>{form.recurring ? t("field_recur_until") : t("field_end_date")}<DateField value={form.endDate} onChange={(v) => setForm({ ...form, endDate: v })} /></label>
         <label>{t("field_note")}<input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} /></label>
+        <label style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <input type="checkbox" checked={form.recurring} onChange={(e) => setForm({ ...form, recurring: e.target.checked })} />
+          {t("dispo_recurring_label")}
+        </label>
       </div>
-      <button className="btn-gold" onClick={() => { if (form.playerId) onSave({ id: uid(), ...form }); }}>
+      {form.recurring && form.startDate && <p className="muted" style={{ fontSize: 12.5, marginTop: -8, marginBottom: 14 }}>{t("dispo_recurring_hint")} {weekdayLabel}.</p>}
+      <button
+        className="btn-gold"
+        onClick={() => {
+          if (!form.playerId) return;
+          const { recurring, ...base } = form;
+          const entry = recurring
+            ? { id: uid(), ...base, recurringDayOfWeek: new Date(form.startDate + "T00:00:00").getDay() }
+            : { id: uid(), ...base };
+          onSave(entry);
+        }}
+      >
         {t("common_save")}
       </button>
     </Modal>
@@ -86,7 +100,7 @@ function MonthCalendar({ players, availabilities }) {
     const map = {};
     for (let d = 1; d <= daysInMonth; d++) {
       const ds = dateStr(d);
-      map[d] = availabilities.filter((a) => ds >= a.startDate && ds <= (a.endDate || a.startDate));
+      map[d] = availabilities.filter((a) => matchesAvailability(a, ds));
     }
     return map;
   }, [availabilities, year, month]);
@@ -209,12 +223,20 @@ export function Disponibilites({ players, availabilities, setAvailabilities, mat
                 <tbody>
                   {history.map((a) => {
                     const p = players.find((x) => x.id === a.playerId);
+                    const isRecurring = a.recurringDayOfWeek !== undefined && a.recurringDayOfWeek !== null && a.recurringDayOfWeek !== "";
+                    const weekdayName = isRecurring
+                      ? new Date(a.startDate + "T00:00:00").toLocaleDateString(undefined, { weekday: "long" })
+                      : "";
                     return (
                       <tr key={a.id}>
                         <td>{p?.name || "—"}</td>
                         <td><span className="status-chip" style={statusChipStyle(a.status)}>{t(AVAILABILITY_KEYS[a.status])}</span></td>
-                        <td className="mono">{formatDate(a.startDate)}</td>
-                        <td className="mono">{a.endDate ? formatDate(a.endDate) : "—"}</td>
+                        <td className="mono">
+                          {isRecurring ? (
+                            <span className="recurring-badge"><CalendarDays size={11} /> {t("dispo_recurring_every")} {weekdayName}</span>
+                          ) : formatDate(a.startDate)}
+                        </td>
+                        <td className="mono">{a.endDate ? formatDate(a.endDate) : (isRecurring ? t("dispo_recurring_ongoing") : "—")}</td>
                         <td className="muted">{a.note || "—"}</td>
                         <td><button className="icon-btn" onClick={() => remove(a.id)}><Trash2 size={13} /></button></td>
                       </tr>

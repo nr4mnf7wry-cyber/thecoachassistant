@@ -462,7 +462,9 @@ export default function App() {
         .leaderboard-row:last-child { border-bottom:none; }
         .rank { width:16px; color:var(--gold); font-family:'IBM Plex Mono',monospace; font-size:12px; }
 
-        .rank-card { display:flex; align-items:center; gap:12px; padding:10px 8px; border-radius:10px; transition:background 0.12s ease; }
+        .rank-card { display:flex; align-items:center; gap:12px; padding:10px 8px; border-radius:10px; transition:background 0.12s ease; max-width:420px; }
+        .rank-card-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(340px, 1fr)); gap:0 24px; }
+        .rank-card-grid .rank-card { max-width:none; }
         .rank-card:hover { background:rgba(var(--gold-rgb),0.05); }
         .rank-card + .rank-card { margin-top:2px; }
         .rank-card-number { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; color:var(--chalk-dim); background:color-mix(in srgb, var(--chalk) 5%, transparent); flex-shrink:0; }
@@ -522,6 +524,7 @@ export default function App() {
         .effectif-composition-line { color:var(--chalk-dim); font-size:13.5px; margin:0 0 20px; display:flex; gap:18px; flex-wrap:wrap; }
         .effectif-composition-line strong { color:var(--chalk); font-family:'IBM Plex Mono',monospace; }
         .flat-cols { display:grid; grid-template-columns:1fr 1fr; gap:32px; margin-bottom:24px; }
+        .recurring-badge { display:inline-flex; align-items:center; gap:5px; color:var(--gold); font-size:12px; }
         .flat-cols-divided { gap:0; }
         .flat-cols-divided > *:not(:last-child) { padding-right:32px; }
         .flat-cols-divided > *:last-child { border-left:1px solid var(--pitch-line); padding-left:32px; }
