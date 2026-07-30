@@ -66,7 +66,11 @@ function TacticalPitch({ rowSlices, slots, positions, players, selected, onSlotC
   const ZONE_COLS = [30, 90, 150, 210, 270];
   const ZONE_ROWS = [55, 124, 193, 262, 331, 400];
   const ZONE_COL_PICKS = { 1: [2], 2: [1, 3], 3: [1, 2, 3], 4: [0, 1, 3, 4], 5: [0, 1, 2, 3, 4] };
-  const rowY = (rowIdx) => (nRows <= 1 ? ZONE_ROWS[2] : ZONE_ROWS[Math.round((rowIdx * (ZONE_ROWS.length - 1)) / Math.max(1, nRows - 1))]);
+  const rowY = (rowIdx) => {
+    if (nRows <= 1) return ZONE_ROWS[2];
+    const step = Math.round((rowIdx * (ZONE_ROWS.length - 1)) / (nRows - 1));
+    return ZONE_ROWS[ZONE_ROWS.length - 1 - step];
+  };
   const colX = (i, k) => {
     const picks = ZONE_COL_PICKS[k] || ZONE_COL_PICKS[Math.min(k, 5)] || [2];
     return ZONE_COLS[picks[i] ?? 2];
