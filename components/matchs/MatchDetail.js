@@ -63,26 +63,34 @@ function GoalTypeSelect({ value, onChange }) {
 function TacticalPitch({ rowSlices, slots, positions, players, selected, onSlotClick, onDragEnd, subsMap, captainId }) {
   const line = "var(--pitch-line)";
   const nRows = rowSlices.length;
-  const rowY = (rowIdx) => (nRows <= 1 ? 220 : 400 - rowIdx * (360 / (nRows - 1)));
   const ZONE_COLS = [30, 90, 150, 210, 270];
+  const ZONE_ROWS = [55, 124, 193, 262, 331, 400];
   const ZONE_COL_PICKS = { 1: [2], 2: [1, 3], 3: [1, 2, 3], 4: [0, 1, 3, 4], 5: [0, 1, 2, 3, 4] };
+  const rowY = (rowIdx) => (nRows <= 1 ? ZONE_ROWS[2] : ZONE_ROWS[Math.round((rowIdx * (ZONE_ROWS.length - 1)) / Math.max(1, nRows - 1))]);
   const colX = (i, k) => {
     const picks = ZONE_COL_PICKS[k] || ZONE_COL_PICKS[Math.min(k, 5)] || [2];
     return ZONE_COLS[picks[i] ?? 2];
   };
+  const snapToZone = (x, y) => ({
+    x: ZONE_COLS.reduce((best, c) => (Math.abs(c - x) < Math.abs(best - x) ? c : best), ZONE_COLS[0]),
+    y: ZONE_ROWS.reduce((best, r) => (Math.abs(r - y) < Math.abs(best - y) ? r : best), ZONE_ROWS[0]),
+  });
+
+  // Position effective de chaque emplacement (celle glissée à la main si elle existe, sinon celle du gabarit
+  // de formation) : calculée une seule fois, réutilisée à la fois pour l'affichage et pour détecter un échange.
+  const effective = {};
+  rowSlices.forEach((indices, rowIdx) => {
+    indices.forEach((index, i) => {
+      const id = slots[index];
+      const custom = id ? positions?.[id] : null;
+      effective[index] = custom ? { x: custom.x, y: custom.y } : { x: colX(i, indices.length), y: rowY(rowIdx) };
+    });
+  });
+
   const svgRef = useRef(null);
   const [dragIndex, setDragIndex] = useState(null);
   const [dragPos, setDragPos] = useState(null);
   const movedRef = useRef(false);
-
-  // Grille de zones tactiques : 5 couloirs verticaux (large gauche, demi-espace gauche,
-  // axe central, demi-espace droit, large droit) x 6 lignes de profondeur.
-  const ZONE_ROWS = [55, 124, 193, 262, 331, 400];
-  const snapToZone = (x, y) => {
-    const zx = ZONE_COLS.reduce((best, c) => (Math.abs(c - x) < Math.abs(best - x) ? c : best), ZONE_COLS[0]);
-    const zy = ZONE_ROWS.reduce((best, r) => (Math.abs(r - y) < Math.abs(best - y) ? r : best), ZONE_ROWS[0]);
-    return { x: zx, y: zy };
-  };
 
   const toSvgPoint = (clientX, clientY) => {
     const rect = svgRef.current.getBoundingClientRect();
@@ -104,16 +112,30 @@ function TacticalPitch({ rowSlices, slots, positions, players, selected, onSlotC
   const endDrag = () => {
     if (dragIndex !== null && movedRef.current && dragPos) {
       const id = slots[dragIndex];
-      if (id) onDragEnd(id, ...Object.values(snapToZone(dragPos.x, dragPos.y)));
+      if (id) {
+        const target = snapToZone(dragPos.x, dragPos.y);
+        // Un autre joueur occupe-t-il déjà cette zone ? Si oui, on échange les deux positions
+        // au lieu de superposer les deux joueurs au même endroit.
+        const occupantIndex = Object.keys(effective).find((idx) => (
+          Number(idx) !== dragIndex && slots[idx] && effective[idx].x === target.x && effective[idx].y === target.y
+        ));
+        if (occupantIndex !== undefined) {
+          const occupantId = slots[occupantIndex];
+          onDragEnd(id, target.x, target.y, occupantId, effective[dragIndex].x, effective[dragIndex].y);
+        } else {
+          onDragEnd(id, target.x, target.y);
+        }
+      }
     }
     setDragIndex(null);
     setDragPos(null);
+    // Le clic déclenché par le navigateur juste après un glisser doit être ignoré une seule fois ;
+    // on s'assure que le drapeau se réinitialise même si ce clic ne survient jamais, pour ne pas
+    // bloquer les interactions suivantes.
+    setTimeout(() => { movedRef.current = false; }, 0);
   };
-  // Le clic se déclenche aussi juste après un glisser (comportement standard du navigateur) :
-  // on l'ignore dans ce cas précis pour ne pas déclencher une sélection/échange non voulu,
-  // qui bloquait ensuite toute nouvelle modification.
   const handleClick = (index) => {
-    if (movedRef.current) { movedRef.current = false; return; }
+    if (movedRef.current) return;
     onSlotClick(index);
   };
 
@@ -133,18 +155,19 @@ function TacticalPitch({ rowSlices, slots, positions, players, selected, onSlotC
       {[60, 120, 180, 240].map((x) => (
         <line key={x} x1={x} y1="18" x2={x} y2="432" stroke={line} strokeWidth="1" strokeDasharray="2 4" opacity="0.5" />
       ))}
+      {/* Points de placement possibles : chaque intersection couloir x ligne où un joueur peut s'aimanter */}
+      {ZONE_COLS.map((zx) => ZONE_ROWS.map((zy) => (
+        <circle key={`${zx}-${zy}`} cx={zx} cy={zy} r={dragIndex !== null ? 3 : 2} fill="var(--pitch-line)" opacity={dragIndex !== null ? 0.9 : 0.5} style={{ pointerEvents: "none" }} />
+      )))}
 
       {rowSlices.map((indices, rowIdx) => {
-        const y = rowY(rowIdx);
         return indices.map((index, i) => {
           const id = slots[index];
           const p = id ? players.find((x) => x.id === id) : null;
           const isSelected = selected?.type === "slot" && selected.index === index;
-          const defaultX = colX(i, indices.length);
           const isDragging = dragIndex === index && movedRef.current;
-          const custom = id ? positions?.[id] : null;
-          const x = isDragging ? dragPos.x : (custom ? custom.x : defaultX);
-          const cy = isDragging ? dragPos.y : (custom ? custom.y : y);
+          const x = isDragging ? dragPos.x : effective[index].x;
+          const cy = isDragging ? dragPos.y : effective[index].y;
           return (
             <g
               key={index}
@@ -207,7 +230,11 @@ function TacticalVariantBlock({ label, variant, match, patch, squad, players, op
     updateVariant({ formation: f, slots: nextSlots });
     setSelected(null);
   };
-  const dragEnd = (id, x, y) => updateVariant({ positions: { ...positions, [id]: { x, y } } });
+  const dragEnd = (id, x, y, occupantId, occupantX, occupantY) => {
+    const next = { ...positions, [id]: { x, y } };
+    if (occupantId) next[occupantId] = { x: occupantX, y: occupantY };
+    updateVariant({ positions: next });
+  };
   const placeInSlot = (index, id) => {
     const next = [...slots];
     const prevIdx = next.indexOf(id);
@@ -607,7 +634,11 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
   const total = formationSlotCount(formation);
   const slots = match.lineupSlots && match.lineupSlots.length === total ? match.lineupSlots : Array(total).fill(null);
   const positions = match.lineupPositions || {};
-  const dragEnd = (id, x, y) => patch({ lineupPositions: { ...positions, [id]: { x, y } } });
+  const dragEnd = (id, x, y, occupantId, occupantX, occupantY) => {
+    const next = { ...positions, [id]: { x, y } };
+    if (occupantId) next[occupantId] = { x: occupantX, y: occupantY };
+    patch({ lineupPositions: next });
+  };
   const starters = slots.filter(Boolean);
   const bench = sortByPosition(squad.filter((id) => !slots.includes(id)).map((id) => players.find((p) => p.id === id)).filter(Boolean)).map((p) => p.id);
   const subs = match.substitutions || [];
