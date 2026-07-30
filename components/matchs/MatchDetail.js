@@ -60,14 +60,47 @@ function GoalTypeSelect({ value, onChange }) {
   );
 }
 
-function TacticalPitch({ rowSlices, slots, players, selected, onSlotClick }) {
+function TacticalPitch({ rowSlices, slots, positions, players, selected, onSlotClick, onDragEnd, subsMap, captainId }) {
   const line = "var(--pitch-line)";
   const nRows = rowSlices.length;
   const rowY = (rowIdx) => (nRows <= 1 ? 220 : 400 - rowIdx * (360 / (nRows - 1)));
   const colX = (i, k) => (k <= 0 ? 150 : ((i + 1) * 300) / (k + 1));
+  const svgRef = useRef(null);
+  const [dragIndex, setDragIndex] = useState(null);
+  const [dragPos, setDragPos] = useState(null);
+  const movedRef = useRef(false);
+
+  const toSvgPoint = (clientX, clientY) => {
+    const rect = svgRef.current.getBoundingClientRect();
+    const x = clamp(((clientX - rect.left) / rect.width) * 300, 18, 282);
+    const y = clamp(((clientY - rect.top) / rect.height) * 450, 18, 432);
+    return { x, y };
+  };
+
+  const startDrag = (e, index) => {
+    e.target.setPointerCapture?.(e.pointerId);
+    movedRef.current = false;
+    setDragIndex(index);
+  };
+  const onMove = (e) => {
+    if (dragIndex === null) return;
+    movedRef.current = true;
+    setDragPos(toSvgPoint(e.clientX, e.clientY));
+  };
+  const endDrag = () => {
+    if (dragIndex !== null && movedRef.current && dragPos) {
+      const id = slots[dragIndex];
+      if (id) onDragEnd(id, dragPos.x, dragPos.y);
+    }
+    setDragIndex(null);
+    setDragPos(null);
+  };
 
   return (
-    <svg viewBox="0 0 300 450" className="tactical-pitch-svg">
+    <svg
+      viewBox="0 0 300 450" className="tactical-pitch-svg" ref={svgRef}
+      onPointerMove={onMove} onPointerUp={endDrag} onPointerLeave={() => dragIndex !== null && endDrag()}
+    >
       <rect x="0" y="0" width="300" height="450" fill="var(--pitch-mid)" />
       <rect x="3" y="3" width="294" height="444" fill="none" stroke={line} strokeWidth="2" />
       <line x1="3" y1="225" x2="297" y2="225" stroke={line} strokeWidth="2" />
@@ -81,23 +114,37 @@ function TacticalPitch({ rowSlices, slots, players, selected, onSlotClick }) {
           const id = slots[index];
           const p = id ? players.find((x) => x.id === id) : null;
           const isSelected = selected?.type === "slot" && selected.index === index;
-          const x = colX(i, indices.length);
+          const defaultX = colX(i, indices.length);
+          const isDragging = dragIndex === index && movedRef.current;
+          const custom = id ? positions?.[id] : null;
+          const x = isDragging ? dragPos.x : (custom ? custom.x : defaultX);
+          const cy = isDragging ? dragPos.y : (custom ? custom.y : y);
           return (
-            <g key={index} onClick={() => onSlotClick(index)} style={{ cursor: "pointer" }}>
+            <g
+              key={index}
+              onClick={() => onSlotClick(index)}
+              onPointerDown={id ? (e) => startDrag(e, index) : undefined}
+              style={{ cursor: id ? "grab" : "pointer", touchAction: "none" }}
+            >
               <circle
-                cx={x} cy={y} r="17"
+                cx={x} cy={cy} r="17"
                 fill={isSelected ? "var(--gold)" : p ? "rgba(var(--gold-rgb),0.12)" : "var(--hover-tint)"}
                 stroke={isSelected ? "var(--gold)" : p ? "var(--gold)" : "var(--pitch-line)"}
                 strokeWidth={isSelected ? 2.5 : 1.5}
               />
               {p ? (
-                <text x={x} y={y + 4} textAnchor="middle" fontSize="12" fontWeight="700" fill={isSelected ? "var(--on-accent)" : "var(--gold)"}>{p.number || "?"}</text>
+                <text x={x} y={cy + 4} textAnchor="middle" fontSize="12" fontWeight="700" fill={isSelected ? "var(--on-accent)" : "var(--gold)"} style={{ pointerEvents: "none" }}>{p.number || "?"}</text>
               ) : (
-                <text x={x} y={y + 4} textAnchor="middle" fontSize="13" fill="var(--chalk-dim)">+</text>
+                <text x={x} y={cy + 4} textAnchor="middle" fontSize="13" fill="var(--chalk-dim)" style={{ pointerEvents: "none" }}>+</text>
               )}
               {p && (
-                <text x={x} y={y + 30} textAnchor="middle" fontSize="9.5" fontWeight="600" fill="var(--chalk-dim)">
-                  {p.name.length > 12 ? p.name.slice(0, 11) + "…" : p.name}
+                <text x={x} y={cy + 30} textAnchor="middle" fontSize="9.5" fontWeight="600" fill="var(--chalk-dim)" style={{ pointerEvents: "none" }}>
+                  {(p.name.length > 12 ? p.name.slice(0, 11) + "…" : p.name)}{captainId === p.id ? " (C)" : ""}
+                </text>
+              )}
+              {p && subsMap?.[p.id] && (
+                <text x={x + 16} y={cy - 12} textAnchor="middle" fontSize="9" fontWeight="700" fill="var(--red)" style={{ pointerEvents: "none" }}>
+                  ↓{subsMap[p.id].minute}'
                 </text>
               )}
             </g>
@@ -118,6 +165,7 @@ function TacticalVariantBlock({ label, variant, match, patch, squad, players, op
   const rows = FORMATIONS[formation] || FORMATIONS["4-4-2"];
   const total = formationSlotCount(formation);
   const slots = current.slots && current.slots.length === total ? current.slots : Array(total).fill(null);
+  const positions = current.positions || {};
   let cursor = 0;
   const rowSlices = rows.map((count) => {
     const idx = Array.from({ length: count }, (_, i) => cursor + i);
@@ -128,7 +176,12 @@ function TacticalVariantBlock({ label, variant, match, patch, squad, players, op
   const bench = poolPlayers.filter((p) => !slots.includes(p.id));
 
   const updateVariant = (fields) => patch({ tacticalVariants: { ...variants, [variant]: { ...current, ...fields } } });
-  const changeFormation = (f) => { updateVariant({ formation: f, slots: Array(formationSlotCount(f)).fill(null) }); setSelected(null); };
+  const changeFormation = (f) => {
+    const nextSlots = remapSlotsForFormation(rowSlices, slots, f);
+    updateVariant({ formation: f, slots: nextSlots });
+    setSelected(null);
+  };
+  const dragEnd = (id, x, y) => updateVariant({ positions: { ...positions, [id]: { x, y } } });
   const placeInSlot = (index, id) => {
     const next = [...slots];
     const prevIdx = next.indexOf(id);
@@ -176,8 +229,9 @@ function TacticalVariantBlock({ label, variant, match, patch, squad, players, op
       {enabled && poolPlayers.length === 0 && <p className="muted">{t("no_squad_yet")}</p>}
       {enabled && poolPlayers.length > 0 && (
         <>
+          <p className="muted" style={{ marginBottom: 10, fontSize: 12.5 }}>{t("swap_hint")}</p>
           <div className="tactical-pitch-wrap">
-            <TacticalPitch rowSlices={rowSlices} slots={slots} players={players} selected={selected} onSlotClick={clickSlot} />
+            <TacticalPitch rowSlices={rowSlices} slots={slots} positions={positions} players={players} selected={selected} onSlotClick={clickSlot} onDragEnd={dragEnd} />
           </div>
           <div className="chip-grid" style={{ marginTop: 10 }}>
             {bench.map((p) => {
@@ -526,6 +580,8 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
   const rows = FORMATIONS[formation] || FORMATIONS["4-4-2"];
   const total = formationSlotCount(formation);
   const slots = match.lineupSlots && match.lineupSlots.length === total ? match.lineupSlots : Array(total).fill(null);
+  const positions = match.lineupPositions || {};
+  const dragEnd = (id, x, y) => patch({ lineupPositions: { ...positions, [id]: { x, y } } });
   const starters = slots.filter(Boolean);
   const bench = sortByPosition(squad.filter((id) => !slots.includes(id)).map((id) => players.find((p) => p.id === id)).filter(Boolean)).map((p) => p.id);
   const subs = match.substitutions || [];
@@ -539,7 +595,10 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
     if (!lastComposedMatch) return;
     const prevFormation = lastComposedMatch.formation || "4-4-2";
     const filteredSlots = (lastComposedMatch.lineupSlots || []).map((id) => (id && squad.includes(id) ? id : null));
-    patch({ formation: prevFormation, lineupSlots: filteredSlots, starters: filteredSlots.filter(Boolean) });
+    const prevPositions = lastComposedMatch.lineupPositions || {};
+    const filteredPositions = {};
+    Object.keys(prevPositions).forEach((id) => { if (squad.includes(id)) filteredPositions[id] = prevPositions[id]; });
+    patch({ formation: prevFormation, lineupSlots: filteredSlots, starters: filteredSlots.filter(Boolean), lineupPositions: filteredPositions });
   };
 
   const toggleSquad = (playerId) => {
@@ -557,7 +616,8 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
   };
 
   const changeFormation = (f) => {
-    patch({ formation: f, lineupSlots: Array(formationSlotCount(f)).fill(null), starters: [], substitutions: [] });
+    const nextSlots = remapSlotsForFormation(rowSlices, slots, f);
+    patch({ formation: f, lineupSlots: nextSlots, starters: nextSlots.filter(Boolean) });
     setSelected(null);
   };
 
@@ -731,7 +791,10 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
       {tab === "composition" && (
         <>
           <div className="panel">
-            <h3>{t("panel_convocation")}</h3>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <h3 style={{ margin: 0 }}>{t("panel_convocation")}</h3>
+              <span className="status-chip" style={{ background: "var(--gold)" }}>{squad.length} {t("convocation_selected_count")}</span>
+            </div>
             {players.length === 0 && <p className="muted">{t("no_players_first")}</p>}
             {[...POSITIONS, ""].map((pos) => {
               const group = selectablePlayers.filter((p) => (p.position || "") === pos);
@@ -787,32 +850,12 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
             <p className="muted" style={{ marginBottom: 10 }}>{t("swap_hint")}</p>
 
             {squad.length > 0 && (
-              <div className="pitch-board">
-                {rowSlices.map((indices, rowIdx) => (
-                  <div key={rowIdx} className="pitch-row">
-                    {indices.map((index) => {
-                      const playerId = slots[index];
-                      const p = playerId ? players.find((x) => x.id === playerId) : null;
-                      const outSub = p ? subs.find((s) => s.outId === p.id) : null;
-                      const isSelected = selected?.type === "slot" && selected.index === index;
-                      return (
-                        <button
-                          key={index}
-                          className={"pitch-chip" + (p ? "" : " empty") + (isSelected ? " selected" : "")}
-                          onClick={() => clickSlot(index)}
-                        >
-                          {p ? (
-                            <>
-                              <Badge number={p.number} size={26} />
-                              <span>{p.name}{match.captain === p.id ? " (C)" : ""}</span>
-                              {outSub && <span className="pitch-sub-tag">↓ {outSub.minute}'</span>}
-                            </>
-                          ) : <span className="muted">+</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                ))}
+              <div className="tactical-pitch-wrap">
+                <TacticalPitch
+                  rowSlices={rowSlices} slots={slots} positions={positions} players={players} selected={selected}
+                  onSlotClick={clickSlot} onDragEnd={dragEnd}
+                  subsMap={Object.fromEntries(subs.map((s) => [s.outId, s]))} captainId={match.captain}
+                />
               </div>
             )}
 

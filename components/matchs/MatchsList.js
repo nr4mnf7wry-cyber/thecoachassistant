@@ -2,13 +2,14 @@ import { useState, useRef, useMemo } from "react";
 import { Plus, Trash2, Upload, Download } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useLang } from "../../lib/i18n";
-import { DEFAULT_SEASON, formatDate, compareValues, useSortState, useSelection } from "../../lib/shared";
+import { DEFAULT_SEASON, formatDate, compareValues, useSortState, useSelection, todayStr } from "../../lib/shared";
 import { parseMatchSheet, downloadTemplate, newMatch } from "../../lib/matchHelpers";
 import { MatchForm } from "./MatchForm";
 
 export function Matchs({ matches, setMatches, currentSeason, setView }) {
   const { t } = useLang();
   const [showForm, setShowForm] = useState(false);
+  const [subTab, setSubTab] = useState("upcoming");
   const { selected, toggle: toggleSelect, clear: clearSelection } = useSelection();
   const { sort, toggleSort, sortArrow } = useSortState("date");
   const fileRef = useRef(null);
@@ -57,6 +58,11 @@ export function Matchs({ matches, setMatches, currentSeason, setView }) {
     });
   }, [matches, currentSeason, sort, t]);
 
+  const today = todayStr();
+  const upcoming = sorted.filter((m) => m.date >= today);
+  const past = sorted.filter((m) => m.date < today);
+  const visibleMatches = subTab === "upcoming" ? upcoming : past;
+
   return (
     <div>
       <div className="view-header">
@@ -74,9 +80,14 @@ export function Matchs({ matches, setMatches, currentSeason, setView }) {
         </div>
       </div>
 
-      {sorted.length === 0 && <p className="muted">{t("matchs_none")}</p>}
+      <div className="tab-bar">
+        <button className={"tab-btn" + (subTab === "upcoming" ? " active" : "")} onClick={() => setSubTab("upcoming")}>{t("entr_tab_upcoming")} ({upcoming.length})</button>
+        <button className={"tab-btn" + (subTab === "past" ? " active" : "")} onClick={() => setSubTab("past")}>{t("entr_tab_past")} ({past.length})</button>
+      </div>
 
-      {sorted.length > 0 && (
+      {visibleMatches.length === 0 && <p className="muted">{subTab === "upcoming" ? t("matchs_none_upcoming") : t("matchs_none_past")}</p>}
+
+      {visibleMatches.length > 0 && (
         <div className="panel" style={{ overflowX: "auto" }}>
           <table className="stats-table">
             <thead>
@@ -91,7 +102,7 @@ export function Matchs({ matches, setMatches, currentSeason, setView }) {
               </tr>
             </thead>
             <tbody>
-              {sorted.map((m) => (
+              {visibleMatches.map((m) => (
                 <tr key={m.id}>
                   <td><input type="checkbox" checked={selected.includes(m.id)} onChange={() => toggleSelect(m.id)} /></td>
                   <td className="mono" style={{ cursor: "pointer" }} onClick={() => setView("match:" + m.id)}>{formatDate(m.date)}</td>
