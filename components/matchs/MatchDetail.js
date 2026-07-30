@@ -64,11 +64,25 @@ function TacticalPitch({ rowSlices, slots, positions, players, selected, onSlotC
   const line = "var(--pitch-line)";
   const nRows = rowSlices.length;
   const rowY = (rowIdx) => (nRows <= 1 ? 220 : 400 - rowIdx * (360 / (nRows - 1)));
-  const colX = (i, k) => (k <= 0 ? 150 : ((i + 1) * 300) / (k + 1));
+  const ZONE_COLS = [30, 90, 150, 210, 270];
+  const ZONE_COL_PICKS = { 1: [2], 2: [1, 3], 3: [1, 2, 3], 4: [0, 1, 3, 4], 5: [0, 1, 2, 3, 4] };
+  const colX = (i, k) => {
+    const picks = ZONE_COL_PICKS[k] || ZONE_COL_PICKS[Math.min(k, 5)] || [2];
+    return ZONE_COLS[picks[i] ?? 2];
+  };
   const svgRef = useRef(null);
   const [dragIndex, setDragIndex] = useState(null);
   const [dragPos, setDragPos] = useState(null);
   const movedRef = useRef(false);
+
+  // Grille de zones tactiques : 5 couloirs verticaux (large gauche, demi-espace gauche,
+  // axe central, demi-espace droit, large droit) x 6 lignes de profondeur.
+  const ZONE_ROWS = [55, 124, 193, 262, 331, 400];
+  const snapToZone = (x, y) => {
+    const zx = ZONE_COLS.reduce((best, c) => (Math.abs(c - x) < Math.abs(best - x) ? c : best), ZONE_COLS[0]);
+    const zy = ZONE_ROWS.reduce((best, r) => (Math.abs(r - y) < Math.abs(best - y) ? r : best), ZONE_ROWS[0]);
+    return { x: zx, y: zy };
+  };
 
   const toSvgPoint = (clientX, clientY) => {
     const rect = svgRef.current.getBoundingClientRect();
@@ -90,10 +104,17 @@ function TacticalPitch({ rowSlices, slots, positions, players, selected, onSlotC
   const endDrag = () => {
     if (dragIndex !== null && movedRef.current && dragPos) {
       const id = slots[dragIndex];
-      if (id) onDragEnd(id, dragPos.x, dragPos.y);
+      if (id) onDragEnd(id, ...Object.values(snapToZone(dragPos.x, dragPos.y)));
     }
     setDragIndex(null);
     setDragPos(null);
+  };
+  // Le clic se déclenche aussi juste après un glisser (comportement standard du navigateur) :
+  // on l'ignore dans ce cas précis pour ne pas déclencher une sélection/échange non voulu,
+  // qui bloquait ensuite toute nouvelle modification.
+  const handleClick = (index) => {
+    if (movedRef.current) { movedRef.current = false; return; }
+    onSlotClick(index);
   };
 
   return (
@@ -107,6 +128,11 @@ function TacticalPitch({ rowSlices, slots, positions, players, selected, onSlotC
       <circle cx="150" cy="225" r="42" fill="none" stroke={line} strokeWidth="2" />
       <rect x="65" y="3" width="170" height="55" fill="none" stroke={line} strokeWidth="2" />
       <rect x="65" y="392" width="170" height="55" fill="none" stroke={line} strokeWidth="2" />
+
+      {/* Couloirs tactiques : lignes verticales discrètes entre large / demi-espace / axe / demi-espace / large */}
+      {[60, 120, 180, 240].map((x) => (
+        <line key={x} x1={x} y1="18" x2={x} y2="432" stroke={line} strokeWidth="1" strokeDasharray="2 4" opacity="0.5" />
+      ))}
 
       {rowSlices.map((indices, rowIdx) => {
         const y = rowY(rowIdx);
@@ -122,7 +148,7 @@ function TacticalPitch({ rowSlices, slots, positions, players, selected, onSlotC
           return (
             <g
               key={index}
-              onClick={() => onSlotClick(index)}
+              onClick={() => handleClick(index)}
               onPointerDown={id ? (e) => startDrag(e, index) : undefined}
               style={{ cursor: id ? "grab" : "pointer", touchAction: "none" }}
             >
