@@ -706,6 +706,27 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
     setSelected(null);
   };
 
+  // Un assistant éditeur ne modifie jamais directement la convocation : il propose un ajout ou
+  // un retrait, que l'entraîneur principal accepte ou refuse ensuite, joueur par joueur.
+  const proposedChanges = match.proposedSquadChanges || [];
+  const proposeSquadChange = (playerId) => {
+    const existing = proposedChanges.find((c) => c.playerId === playerId);
+    if (existing) {
+      // proposer à nouveau annule sa propre proposition
+      patch({ proposedSquadChanges: proposedChanges.filter((c) => c.playerId !== playerId) });
+      return;
+    }
+    const action = squad.includes(playerId) ? "remove" : "add";
+    patch({ proposedSquadChanges: [...proposedChanges, { playerId, action, by: currentUser?.username || "?", at: new Date().toISOString() }] });
+  };
+  const acceptProposal = (playerId) => {
+    patch({ proposedSquadChanges: proposedChanges.filter((c) => c.playerId !== playerId) });
+    toggleSquad(playerId);
+  };
+  const rejectProposal = (playerId) => {
+    patch({ proposedSquadChanges: proposedChanges.filter((c) => c.playerId !== playerId) });
+  };
+
   const changeFormation = (f) => {
     const nextSlots = remapSlotsForFormation(rowSlices, slots, f);
     patch({ formation: f, lineupSlots: nextSlots, starters: nextSlots.filter(Boolean) });
@@ -904,6 +925,35 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
               <h3 style={{ margin: 0 }}>{t("panel_convocation")}</h3>
               <span className="status-chip" style={{ background: "var(--gold)" }}>{squad.length} {t("convocation_selected_count")}</span>
             </div>
+            {isEditorAssistant && (
+              <p className="muted" style={{ fontSize: 12.5, marginBottom: 14 }}>{t("propose_hint")}</p>
+            )}
+            {proposedChanges.length > 0 && (
+              <div className="proposals-panel">
+                <p className="muted mono" style={{ fontSize: 11, textTransform: "uppercase", marginBottom: 8 }}>{t("panel_proposals")}</p>
+                {proposedChanges.map((c) => {
+                  const p = players.find((x) => x.id === c.playerId);
+                  return (
+                    <div key={c.playerId} className="match-row">
+                      <span style={{ flex: 1 }}>{p?.name || "—"}</span>
+                      <span className="status-chip" style={{ background: c.action === "add" ? "var(--gold)" : "var(--red)" }}>
+                        {t(c.action === "add" ? "proposal_add" : "proposal_remove")}
+                      </span>
+                      <span className="muted" style={{ fontSize: 11.5 }}>{t("proposed_by")} {c.by}</span>
+                      {currentUser?.role === "head" && (
+                        <>
+                          <button className="icon-btn" onClick={() => acceptProposal(c.playerId)}>{t("proposal_accept")}</button>
+                          <button className="icon-btn" onClick={() => rejectProposal(c.playerId)}>{t("proposal_reject")}</button>
+                        </>
+                      )}
+                      {isEditorAssistant && currentUser?.username === c.by && (
+                        <button className="icon-btn" onClick={() => proposeSquadChange(c.playerId)}>{t("proposal_cancel")}</button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             {players.length === 0 && <p className="muted">{t("no_players_first")}</p>}
             {[...POSITIONS, ""].map((pos) => {
               const group = selectablePlayers.filter((p) => (p.position || "") === pos);
@@ -915,9 +965,17 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
                     {group.map((p) => {
                       const isSelected = squad.includes(p.id);
                       const isGuest = (p.status || "titulaire") === "invite";
+                      const proposal = proposedChanges.find((c) => c.playerId === p.id);
+                      const onChipClick = isEditorAssistant ? () => proposeSquadChange(p.id) : () => toggleSquad(p.id);
                       return (
-                        <button key={p.id} className={"player-chip" + (isSelected ? " selected" : "")} onClick={() => toggleSquad(p.id)}>
+                        <button
+                          key={p.id}
+                          className={"player-chip" + (isSelected ? " selected" : "") + (proposal ? " proposed-" + proposal.action : "")}
+                          onClick={onChipClick}
+                          title={proposal ? `${t("proposal_pending")} : ${t(proposal.action === "add" ? "proposal_add" : "proposal_remove")}` : ""}
+                        >
                           <Badge number={p.number} size={22} /> {p.name}{isGuest && <span className="mono" style={{ fontSize: 10, opacity: 0.8 }}> ({t("badge_guest")})</span>}
+                          {proposal && <span className="proposal-dot" />}
                         </button>
                       );
                     })}

@@ -566,6 +566,10 @@ export default function App() {
         .player-chip { display:flex; align-items:center; gap:8px; background:color-mix(in srgb, var(--chalk) 5%, transparent); border:1px solid var(--pitch-line); color:var(--chalk-dim); border-radius:6px; padding:5px 12px 5px 5px; font-size:13px; cursor:pointer; }
         .unavailable-section { margin-top:14px; padding-top:14px; border-top:1px solid var(--pitch-line); }
         .player-chip.unavailable { background:rgba(var(--red-rgb),0.08); border-color:rgba(var(--red-rgb),0.3); color:var(--red); cursor:not-allowed; opacity:0.85; }
+        .player-chip.proposed-add { border-color:var(--gold); border-style:dashed; }
+        .player-chip.proposed-remove { border-color:var(--red); border-style:dashed; }
+        .proposal-dot { width:6px; height:6px; border-radius:50%; background:var(--gold); flex-shrink:0; }
+        .proposals-panel { margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid var(--pitch-line); }
         .player-chip.selected { background:var(--gold); border-color:var(--gold); color:var(--on-accent); font-weight:600; }
         .player-chip .badge-number { background:rgba(0,0,0,0.15); color:inherit; }
         .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; z-index:50; padding:20px; }

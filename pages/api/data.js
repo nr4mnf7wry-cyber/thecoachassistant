@@ -15,6 +15,11 @@ function deepEqual(a, b) {
 // Détecte toute suppression, à n'importe quel niveau d'imbrication (un but, un exercice,
 // un remplaçant à l'intérieur d'un match ou d'une séance compte comme une suppression,
 // pas seulement un enregistrement complet retiré).
+// Champs qui peuvent librement rétrécir même pour un assistant éditeur : les propositions de
+// convocation sont normalement retirées une fois traitées (acceptées, refusées, ou annulées
+// par leur auteur), ce n'est pas une suppression de donnée à protéger.
+const DELETION_EXEMPT_KEYS = new Set(["proposedSquadChanges"]);
+
 function hasDeletion(oldVal, newVal) {
   if (Array.isArray(oldVal)) {
     const newArr = Array.isArray(newVal) ? newVal : [];
@@ -31,6 +36,7 @@ function hasDeletion(oldVal, newVal) {
   }
   if (oldVal && typeof oldVal === "object" && newVal && typeof newVal === "object") {
     for (const k of Object.keys(oldVal)) {
+      if (DELETION_EXEMPT_KEYS.has(k)) continue;
       if (hasDeletion(oldVal[k], newVal[k])) return true;
     }
     return false;

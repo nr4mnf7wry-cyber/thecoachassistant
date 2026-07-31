@@ -176,9 +176,6 @@ export function Effectif({
     return groups;
   }, [rows, groupByPosition]);
 
-  const today = todayStr();
-  const unavailableToday = players.filter((p) => isPlayerUnavailable(availabilities, p.id, today));
-
   return (
     <div>
       <div className="view-header">
@@ -195,22 +192,6 @@ export function Effectif({
           <span key={pos || "none"}><strong>{positionCounts[pos]}</strong> {pos ? t(POSITION_KEYS[pos]) : t("column_no_position")}</span>
         ))}
       </p>
-
-      {unavailableToday.length > 0 && (
-        <div className="unavailable-section" style={{ borderTop: "none", marginTop: 0, marginBottom: 20 }}>
-          <div className="position-group-label" style={{ color: "var(--red)" }}>{t("unavailable_section_title")}</div>
-          <div className="chip-grid">
-            {unavailableToday.map((p) => {
-              const reason = isPlayerUnavailable(availabilities, p.id, today);
-              return (
-                <span key={p.id} className="player-chip unavailable" title={reason ? t(AVAILABILITY_KEYS[reason.status]) : ""}>
-                  <Badge number={p.number} size={22} /> {p.name}
-                </span>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {players.length === 0 && (
         <EmptyState
