@@ -609,7 +609,7 @@ function MatchLiveTab({ match, patch, squad, players, opponentProfiles }) {
   );
 }
 
-export function MatchDetail({ matchId, players, matches, setMatches, availabilities, leagueMatches, opponentProfiles, setOpponentProfiles, setView }) {
+export function MatchDetail({ matchId, players, matches, setMatches, availabilities, leagueMatches, opponentProfiles, setOpponentProfiles, setView, currentUser, isEditorAssistant }) {
   const { t } = useLang();
   const [tab, setTab] = useState("composition");
   const [selected, setSelected] = useState(null); // {type:'slot',index} | {type:'bench', id}
@@ -649,7 +649,11 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
 
   if (!match) return <p className="muted">—</p>;
 
-  const patch = (fields) => setMatches(matches.map((m) => (m.id === matchId ? { ...m, ...fields } : m)));
+  const patch = (fields) => {
+    const extra = isEditorAssistant ? { pendingReview: { by: currentUser?.username || "?", at: new Date().toISOString() } } : {};
+    setMatches(matches.map((m) => (m.id === matchId ? { ...m, ...fields, ...extra } : m)));
+  };
+  const clearPendingReview = () => setMatches(matches.map((m) => (m.id === matchId ? { ...m, pendingReview: null } : m)));
   const squad = match.squad || [];
   const selectablePlayers = sortByPosition(players.filter((p) => !isPlayerUnavailable(availabilities, p.id, match.date)));
   const excludedCount = players.length - selectablePlayers.length;
@@ -670,16 +674,22 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
   const availableBench = bench.filter((id) => !usedInIds.includes(id));
 
   const lastComposedMatch = [...matches]
-    .filter((m) => m.id !== match.id && m.date < match.date && (m.lineupSlots || []).some(Boolean))
+    .filter((m) => m.id !== match.id && m.date < match.date && ((m.squad || []).length > 0 || (m.lineupSlots || []).some(Boolean)))
     .sort((a, b) => (a.date > b.date ? -1 : 1))[0] || null;
   const composeFromLast = () => {
     if (!lastComposedMatch) return;
+    if (squad.length > 0 && !confirm(t("confirm_compose_from_last"))) return;
+    const prevSquad = lastComposedMatch.squad || [];
+    const nextSquad = prevSquad.filter((id) => !isPlayerUnavailable(availabilities, id, match.date));
     const prevFormation = lastComposedMatch.formation || "4-4-2";
-    const filteredSlots = (lastComposedMatch.lineupSlots || []).map((id) => (id && squad.includes(id) ? id : null));
+    const prevSlots = lastComposedMatch.lineupSlots || [];
+    const filteredSlots = prevSlots.length > 0
+      ? prevSlots.map((id) => (id && nextSquad.includes(id) ? id : null))
+      : [];
     const prevPositions = lastComposedMatch.lineupPositions || {};
     const filteredPositions = {};
-    Object.keys(prevPositions).forEach((id) => { if (squad.includes(id)) filteredPositions[id] = prevPositions[id]; });
-    patch({ formation: prevFormation, lineupSlots: filteredSlots, starters: filteredSlots.filter(Boolean), lineupPositions: filteredPositions });
+    Object.keys(prevPositions).forEach((id) => { if (nextSquad.includes(id)) filteredPositions[id] = prevPositions[id]; });
+    patch({ squad: nextSquad, formation: prevFormation, lineupSlots: filteredSlots, starters: filteredSlots.filter(Boolean), lineupPositions: filteredPositions });
   };
 
   const toggleSquad = (playerId) => {
@@ -793,6 +803,15 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
         </div>
       </div>
 
+      {match.pendingReview && (
+        <div className="panel pending-review-banner">
+          <span>{t("pending_review_notice")} <strong>{match.pendingReview.by}</strong> · {formatDate(match.pendingReview.at?.slice(0, 10))}</span>
+          {currentUser?.role === "head" && (
+            <button className="icon-btn" onClick={clearPendingReview}>{t("pending_review_confirm")}</button>
+          )}
+        </div>
+      )}
+
       <div className="tab-bar">
         <button className={"tab-btn" + (tab === "prep" ? " active" : "")} onClick={() => setTab("prep")}>{t("tab_prep")}</button>
         <button className={"tab-btn" + (tab === "composition" ? " active" : "")} onClick={() => setTab("composition")}>{t("tab_composition")}</button>
@@ -871,6 +890,15 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
 
       {tab === "composition" && (
         <>
+          {lastComposedMatch && (
+            <div className="panel compose-from-last-banner">
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{t("compose_from_last")}</div>
+                <p className="muted" style={{ margin: "2px 0 0", fontSize: 12.5 }}>{t("compose_from_last_hint")} {formatDate(lastComposedMatch.date)} · {t("nav_matchs")} vs {lastComposedMatch.opponent}</p>
+              </div>
+              <button className="btn-gold" onClick={composeFromLast}>{t("compose_from_last_action")}</button>
+            </div>
+          )}
           <div className="panel">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
               <h3 style={{ margin: 0 }}>{t("panel_convocation")}</h3>
@@ -904,9 +932,6 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
             <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
               <h3 style={{ margin: 0 }}>{t("panel_composition_pitch")}</h3>
               <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
-                {lastComposedMatch && (
-                  <button className="icon-btn" onClick={composeFromLast}>{t("compose_from_last")}</button>
-                )}
                 <label className="muted" style={{ fontSize: 12.5, display: "flex", alignItems: "center", gap: 6 }}>
                   {t("field_formation")}
                   <select value={formation} onChange={(e) => changeFormation(e.target.value)}>

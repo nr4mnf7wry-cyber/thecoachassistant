@@ -148,7 +148,14 @@ export function Disponibilites({ players, availabilities, setAvailabilities, mat
   const [showForm, setShowForm] = useState(false);
   const [historyMode, setHistoryMode] = useState("list");
   const upcomingEvents = useMemo(() => getUpcomingEvents(matches, trainings), [matches, trainings]);
-  const history = [...availabilities].sort((a, b) => (a.startDate < b.startDate ? 1 : -1)).slice(0, 40);
+  const today = todayStr();
+  const isRecurringEntry = (a) => a.recurringDayOfWeek !== undefined && a.recurringDayOfWeek !== null && a.recurringDayOfWeek !== "";
+  const isExpiredRecurring = (a) => isRecurringEntry(a) && a.endDate && a.endDate < today;
+  const activeRecurring = availabilities.filter((a) => isRecurringEntry(a) && !isExpiredRecurring(a));
+  const history = [...availabilities]
+    .filter((a) => !isRecurringEntry(a) || isExpiredRecurring(a))
+    .sort((a, b) => (a.startDate < b.startDate ? 1 : -1))
+    .slice(0, 40);
 
   const save = (entry) => { setAvailabilities([...availabilities, entry]); setShowForm(false); };
   const remove = (id) => setAvailabilities(availabilities.filter((a) => a.id !== id));
@@ -202,6 +209,24 @@ export function Disponibilites({ players, availabilities, setAvailabilities, mat
               </tbody>
             </table>
           )}
+        </div>
+      )}
+
+      {activeRecurring.length > 0 && (
+        <div className="panel">
+          <h3>{t("dispo_active_rules_title")}</h3>
+          {activeRecurring.map((a) => {
+            const p = players.find((x) => x.id === a.playerId);
+            const weekdayName = new Date(a.startDate + "T00:00:00").toLocaleDateString(undefined, { weekday: "long" });
+            return (
+              <div key={a.id} className="match-row">
+                <span style={{ flex: 1 }}>{p?.name || "—"}</span>
+                <span className="status-chip" style={statusChipStyle(a.status)}>{t(AVAILABILITY_KEYS[a.status])}</span>
+                <span className="muted mono" style={{ fontSize: 12.5 }}>{t("dispo_recurring_every")} {weekdayName}</span>
+                <button className="icon-btn" onClick={() => remove(a.id)}><Trash2 size={13} /></button>
+              </div>
+            );
+          })}
         </div>
       )}
 

@@ -182,7 +182,10 @@ function Sidebar({ view, setView, teamName, setTeamName, seasons, currentSeason,
           {!collapsed && (
             <div className="account-info">
               <div className="account-name">{currentUser.username}</div>
-              <div className="account-role">{t(currentUser.role === "head" ? "role_head" : "role_assistant")}</div>
+              <div className="account-role">
+                {t(currentUser.role === "head" ? "role_head" : "role_assistant")}
+                {currentUser.role === "assistant" && ` · ${t(currentUser.permissionLevel === "editor" ? "permission_editor" : "permission_readonly")}`}
+              </div>
             </div>
           )}
           <button className="icon-btn" onClick={logout} data-label={collapsed ? t("nav_logout") : undefined}><LogOut size={14} /></button>
@@ -239,24 +242,42 @@ export default function App() {
     })();
   }, []);
 
-  const isReadOnly = currentUser?.role === "assistant";
+  const isHead = currentUser?.role === "head";
+  const isEditorAssistant = currentUser?.role === "assistant" && currentUser?.permissionLevel === "editor";
+  const isReadOnly = currentUser?.role === "assistant" && !isEditorAssistant;
   const noop = () => {};
-  const setPlayers = isReadOnly ? noop : teamData.setPlayers;
-  const setStaff = isReadOnly ? noop : teamData.setStaff;
-  const setMatches = isReadOnly ? noop : teamData.setMatches;
-  const setTrainings = isReadOnly ? noop : teamData.setTrainings;
-  const setEvaluations = isReadOnly ? noop : teamData.setEvaluations;
-  const setAvailabilities = isReadOnly ? noop : teamData.setAvailabilities;
-  const setExerciseLibrary = isReadOnly ? noop : teamData.setExerciseLibrary;
-  const setBodyMetrics = isReadOnly ? noop : teamData.setBodyMetrics;
-  const setLeagueMatches = isReadOnly ? noop : teamData.setLeagueMatches;
-  const setOpponentProfiles = isReadOnly ? noop : teamData.setOpponentProfiles;
-  const setInjuries = isReadOnly ? noop : teamData.setInjuries;
-  const setDevelopmentGoals = isReadOnly ? noop : teamData.setDevelopmentGoals;
-  const setLiveSessions = isReadOnly ? noop : teamData.setLiveSessions;
-  const setTeamName = isReadOnly ? noop : teamData.setTeamName;
-  const setSeasons = isReadOnly ? noop : teamData.setSeasons;
-  const setCurrentSeason = isReadOnly ? noop : teamData.setCurrentSeason;
+  const canEditRestricted = isHead; // effectif, staff, réglages, saisons... réservé au principal
+  const canEditShared = isHead || isEditorAssistant; // entraînements, disponibilités, blessures, matchs
+  const setPlayers = canEditRestricted ? teamData.setPlayers : noop;
+  const setStaff = canEditRestricted ? teamData.setStaff : noop;
+  const setMatches = canEditShared ? teamData.setMatches : noop;
+  const setTrainings = canEditShared ? teamData.setTrainings : noop;
+  const setEvaluations = canEditRestricted ? teamData.setEvaluations : noop;
+  const setAvailabilities = canEditShared ? teamData.setAvailabilities : noop;
+  const setExerciseLibrary = canEditRestricted ? teamData.setExerciseLibrary : noop;
+  const setBodyMetrics = canEditRestricted ? teamData.setBodyMetrics : noop;
+  const setLeagueMatches = canEditRestricted ? teamData.setLeagueMatches : noop;
+  const setOpponentProfiles = canEditRestricted ? teamData.setOpponentProfiles : noop;
+  const setInjuries = canEditShared ? teamData.setInjuries : noop;
+  const setDevelopmentGoals = canEditRestricted ? teamData.setDevelopmentGoals : noop;
+  const setLiveSessions = canEditRestricted ? teamData.setLiveSessions : noop;
+  const setTeamName = canEditRestricted ? teamData.setTeamName : noop;
+  const setSeasons = canEditRestricted ? teamData.setSeasons : noop;
+  const setCurrentSeason = canEditShared ? teamData.setCurrentSeason : noop;
+
+  // Un assistant éditeur ne peut jamais réduire une des listes qu'il est autorisé à modifier :
+  // blocage immédiat côté interface (le serveur applique la même règle en dernier recours).
+  const guardNoDelete = (setter, currentArr) => (next) => {
+    if (isEditorAssistant && Array.isArray(currentArr) && Array.isArray(next)) {
+      const nextIds = new Set(next.map((x) => x?.id));
+      const removed = currentArr.some((x) => x?.id && !nextIds.has(x.id));
+      if (removed) { alert(t("assistant_no_delete_warning")); return; }
+    }
+    setter(next);
+  };
+  const setTrainingsGuarded = isEditorAssistant ? guardNoDelete(setTrainings, teamData.trainings) : setTrainings;
+  const setAvailabilitiesGuarded = isEditorAssistant ? guardNoDelete(setAvailabilities, teamData.availabilities) : setAvailabilities;
+  const setInjuriesGuarded = isEditorAssistant ? guardNoDelete(setInjuries, teamData.injuries) : setInjuries;
 
   const { t } = useLang();
   const [view, setView] = useState("dashboard");
@@ -297,7 +318,7 @@ export default function App() {
     />
   );
   else if (view === "staff") content = <Staff staff={staff} setStaff={setStaff} />;
-  else if (view === "injuries") content = <Injuries players={players} injuries={injuries} setInjuries={setInjuries} availabilities={availabilities} setAvailabilities={setAvailabilities} />;
+  else if (view === "injuries") content = <Injuries players={players} injuries={injuries} setInjuries={setInjuriesGuarded} availabilities={availabilities} setAvailabilities={setAvailabilitiesGuarded} />;
   else if (view === "live") content = <LiveMatch liveSessions={liveSessions} setLiveSessions={setLiveSessions} opponentProfiles={opponentProfiles} />;
   else if (view === "stats") content = <Statistiques players={players} matches={playedSeasonMatches} trainings={playedSeasonTrainings} evaluations={evaluations} />;
   else if (view === "analyses") content = <Analyses players={players} matches={playedSeasonMatches} trainings={playedSeasonTrainings} />;
@@ -305,8 +326,8 @@ export default function App() {
   else if (view === "competition") content = <CompetitionList leagueMatches={leagueMatches} setLeagueMatches={setLeagueMatches} setView={setView} />;
   else if (view.startsWith("competition:")) content = <CompetitionMatchDetail matchId={view.split(":")[1]} leagueMatches={leagueMatches} setLeagueMatches={setLeagueMatches} setView={setView} />;
   else if (view.startsWith("opponent:")) content = <OpponentProfile teamName={view.slice("opponent:".length)} opponentProfiles={opponentProfiles} setOpponentProfiles={setOpponentProfiles} setView={setView} />;
-  else if (view === "disponibilites") content = <Disponibilites players={players} availabilities={availabilities} setAvailabilities={setAvailabilities} matches={seasonMatches} trainings={seasonTrainings} />;
-  else if (view === "entrainements") content = <Entrainements players={players} trainings={trainings} setTrainings={setTrainings} availabilities={availabilities} currentSeason={currentSeason} setView={setView} />;
+  else if (view === "disponibilites") content = <Disponibilites players={players} availabilities={availabilities} setAvailabilities={setAvailabilitiesGuarded} matches={seasonMatches} trainings={seasonTrainings} />;
+  else if (view === "entrainements") content = <Entrainements players={players} trainings={trainings} setTrainings={setTrainingsGuarded} availabilities={availabilities} currentSeason={currentSeason} setView={setView} />;
   else if (view.startsWith("entrainements:")) content = (
     <EntrainementDetail
       trainingId={view.split(":")[1]} players={players} trainings={trainings} setTrainings={setTrainings}
@@ -314,7 +335,7 @@ export default function App() {
     />
   );
   else if (view === "matchs") content = <Matchs matches={matches} setMatches={setMatches} currentSeason={currentSeason} setView={setView} />;
-  else if (view.startsWith("match:")) content = <MatchDetail matchId={view.split(":")[1]} players={players} matches={matches} setMatches={setMatches} availabilities={availabilities} leagueMatches={leagueMatches} opponentProfiles={opponentProfiles} setOpponentProfiles={setOpponentProfiles} setView={setView} />;
+  else if (view.startsWith("match:")) content = <MatchDetail matchId={view.split(":")[1]} players={players} matches={matches} setMatches={setMatches} availabilities={availabilities} leagueMatches={leagueMatches} opponentProfiles={opponentProfiles} setOpponentProfiles={setOpponentProfiles} setView={setView} currentUser={currentUser} isEditorAssistant={isEditorAssistant} />;
   else if (view === "reglages") content = (
     <Reglages
       teamName={teamName}
@@ -345,8 +366,10 @@ export default function App() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
         .app-root { --pitch-dark:#F5F6F8; --pitch-mid:#FFFFFF; --pitch-line:#E2E5EA; --chalk:#14171F; --chalk-dim:#667085; --gold:#2563EB; --gold-rgb:37,99,235; --red:#DC2626; --red-rgb:220,38,38; --yellow:#B45309; --yellow-rgb:180,83,7; --on-accent:#FFFFFF; --hover-tint:color-mix(in srgb, var(--chalk) 4.5%, transparent);
+          --pos-gk:#0F6E56; --pos-def:#2563EB; --pos-mid:#B45309; --pos-att:#DC2626;
           font-family:'Inter',sans-serif; background:var(--pitch-dark); color:var(--chalk); min-height:100vh; display:flex; }
-        .app-root.dark { --pitch-dark:#14171C; --pitch-mid:#1C2028; --pitch-line:rgba(255,255,255,0.09); --chalk:#F2F3F5; --chalk-dim:#8B93A1; --gold:#4C8DFF; --gold-rgb:76,141,255; --red:#EF4444; --red-rgb:239,68,68; --yellow:#F59E0B; --yellow-rgb:245,158,11; --on-accent:#0A0E14; --hover-tint:rgba(255,255,255,0.07); }
+        .app-root.dark { --pitch-dark:#14171C; --pitch-mid:#1C2028; --pitch-line:rgba(255,255,255,0.09); --chalk:#F2F3F5; --chalk-dim:#8B93A1; --gold:#4C8DFF; --gold-rgb:76,141,255; --red:#EF4444; --red-rgb:239,68,68; --yellow:#F59E0B; --yellow-rgb:245,158,11; --on-accent:#0A0E14; --hover-tint:rgba(255,255,255,0.07);
+          --pos-gk:#1DBE8D; --pos-def:#4C8DFF; --pos-mid:#F59E0B; --pos-att:#F87171; }
         .app-root * { box-sizing:border-box; }
         .sidebar { width:230px; flex-shrink:0; background:var(--pitch-mid); padding:24px 14px; border-right:1px solid var(--pitch-line); display:flex; flex-direction:column; gap:16px; position:relative; transition:width 0.15s ease; }
         .sidebar.collapsed { width:68px; padding:24px 10px; align-items:center; }
@@ -524,6 +547,8 @@ export default function App() {
         .effectif-composition-line { color:var(--chalk-dim); font-size:13.5px; margin:0 0 20px; display:flex; gap:18px; flex-wrap:wrap; }
         .effectif-composition-line strong { color:var(--chalk); font-family:'IBM Plex Mono',monospace; }
         .flat-cols { display:grid; grid-template-columns:1fr 1fr; gap:32px; margin-bottom:24px; }
+        .compose-from-last-banner { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; border-left:3px solid var(--gold); }
+        .pending-review-banner { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; border-left:3px solid var(--yellow); background:rgba(var(--yellow-rgb),0.06); font-size:13px; }
         .recurring-badge { display:inline-flex; align-items:center; gap:5px; color:var(--gold); font-size:12px; }
         .flat-cols-divided { gap:0; }
         .flat-cols-divided > *:not(:last-child) { padding-right:32px; }

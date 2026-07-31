@@ -106,6 +106,7 @@ function AccountsPanel() {
   const [showForm, setShowForm] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [permissionLevel, setPermissionLevel] = useState("readonly");
   const [error, setError] = useState("");
 
   const load = () => {
@@ -119,11 +120,20 @@ function AccountsPanel() {
     const res = await fetch("/api/auth/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, permissionLevel }),
     });
     const data = await res.json();
     if (!res.ok) { setError(data.error || t("account_error")); return; }
-    setUsername(""); setPassword(""); setShowForm(false);
+    setUsername(""); setPassword(""); setPermissionLevel("readonly"); setShowForm(false);
+    load();
+  };
+
+  const changePermission = async (id, level) => {
+    await fetch("/api/auth/users", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, permissionLevel: level }),
+    });
     load();
   };
 
@@ -144,6 +154,12 @@ function AccountsPanel() {
         <form onSubmit={addAssistant} style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap", marginBottom: 16 }}>
           <label className="muted" style={{ fontSize: 12 }}>{t("field_username")}<input value={username} onChange={(e) => setUsername(e.target.value)} required /></label>
           <label className="muted" style={{ fontSize: 12 }}>{t("field_password")}<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} /></label>
+          <label className="muted" style={{ fontSize: 12 }}>{t("field_permission_level")}
+            <select value={permissionLevel} onChange={(e) => setPermissionLevel(e.target.value)}>
+              <option value="readonly">{t("permission_readonly")}</option>
+              <option value="editor">{t("permission_editor")}</option>
+            </select>
+          </label>
           <button type="submit" className="btn-gold">{t("common_add")}</button>
         </form>
       )}
@@ -157,6 +173,12 @@ function AccountsPanel() {
           <span className="status-chip" style={{ background: u.role === "head" ? "var(--gold)" : "var(--chalk-dim)" }}>
             {t(u.role === "head" ? "role_head" : "role_assistant")}
           </span>
+          {u.role !== "head" && (
+            <select value={u.permissionLevel || "readonly"} onChange={(e) => changePermission(u.id, e.target.value)} style={{ fontSize: 12.5 }}>
+              <option value="readonly">{t("permission_readonly")}</option>
+              <option value="editor">{t("permission_editor")}</option>
+            </select>
+          )}
           {u.role !== "head" && <button className="icon-btn" onClick={() => removeUser(u.id)}><Trash2 size={13} /></button>}
         </div>
       ))}

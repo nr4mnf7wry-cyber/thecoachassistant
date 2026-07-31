@@ -18,7 +18,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "POST") {
-      const { username, password } = req.body || {};
+      const { username, password, permissionLevel } = req.body || {};
       const cleanUsername = String(username || "").trim();
       if (!cleanUsername || !password || password.length < 8) {
         res.status(400).json({ error: "Nom d'utilisateur requis et mot de passe d'au moins 8 caractères." });
@@ -34,11 +34,27 @@ export default async function handler(req, res) {
         username: cleanUsername,
         passwordHash: hashPassword(password),
         role: "assistant",
+        permissionLevel: permissionLevel === "editor" ? "editor" : "readonly",
         createdAt: new Date().toISOString(),
         sessionToken: null,
       };
       await saveUsers([...allUsers, newUser]);
       res.status(200).json({ ok: true, user: publicUser(newUser) });
+      return;
+    }
+
+    if (req.method === "PATCH") {
+      const { id, permissionLevel } = req.body || {};
+      if (!id || (permissionLevel !== "editor" && permissionLevel !== "readonly")) {
+        res.status(400).json({ error: "Paramètres invalides." });
+        return;
+      }
+      const target = clubUsers.find((u) => u.id === id);
+      if (!target) { res.status(404).json({ error: "Compte introuvable." }); return; }
+      if (target.role === "head") { res.status(400).json({ error: "Le niveau de l'entraîneur principal ne se modifie pas." }); return; }
+      const updated = clubUsers.map((u) => (u.id === id ? { ...u, permissionLevel } : u));
+      await saveUsers([...otherUsers, ...updated]);
+      res.status(200).json({ ok: true });
       return;
     }
 
