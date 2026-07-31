@@ -219,6 +219,7 @@ export function EntrainementDetail({ trainingId, players, trainings, setTraining
   };
 
   const trackedPlayers = players.filter((p) => (p.status || "titulaire") !== "invite" || attendance[p.id]);
+  const presentCount = trackedPlayers.filter((p) => (attendance[p.id]?.present ?? true)).length;
   const availableGuests = players.filter((p) => (p.status || "titulaire") === "invite" && !attendance[p.id]);
 
   const addGuestToSession = () => {
@@ -287,6 +288,7 @@ export function EntrainementDetail({ trainingId, players, trainings, setTraining
       </div>
 
       <div className="metric-grid">
+        <MetricCard label={t("entr_present_count")} value={`${presentCount}/${trackedPlayers.length}`} icon={UserCheck} />
         <MetricCard label={t("session_load_total")} value={sessionLoad || "—"} icon={Gauge} />
         <MetricCard
           label={t("field_coach_rpe") + (!hasManualCoachRpe && computedCoachRpe !== null ? ` (${t("auto_computed_short")})` : "")}

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Trash2, Dumbbell, CalendarDays, ChevronLeft, ChevronRight, List, Grid3x3 } from "lucide-react";
+import { Plus, Trash2, Dumbbell, CalendarDays, ChevronLeft, ChevronRight, List, Grid3x3, Pencil } from "lucide-react";
 import { useLang } from "../lib/i18n";
 import { uid, Modal, DateField, UNAVAILABILITY_STATUSES, AVAILABILITY_KEYS, todayStr, formatDate, addDaysToDateStr, matchesAvailability } from "../lib/shared";
 
@@ -28,21 +28,22 @@ function getUpcomingEvents(matches, trainings) {
   return [...trainingEvents, ...matchEvents].sort((a, b) => (a.date > b.date ? 1 : -1));
 }
 
-function DispoForm({ players, onSave, onClose }) {
+function DispoForm({ players, initial, onSave, onClose }) {
   const { t } = useLang();
   const [form, setForm] = useState({
-    playerId: players[0]?.id || "",
-    status: UNAVAILABILITY_STATUSES[0],
-    startDate: todayStr(),
-    endDate: "",
-    note: "",
-    recurring: false,
+    id: initial?.id,
+    playerId: initial?.playerId || players[0]?.id || "",
+    status: initial?.status || UNAVAILABILITY_STATUSES[0],
+    startDate: initial?.startDate || todayStr(),
+    endDate: initial?.endDate || "",
+    note: initial?.note || "",
+    recurring: initial ? (initial.recurringDayOfWeek !== undefined && initial.recurringDayOfWeek !== null && initial.recurringDayOfWeek !== "") : false,
   });
   const weekdayLabel = form.startDate
     ? new Date(form.startDate + "T00:00:00").toLocaleDateString(undefined, { weekday: "long" })
     : "";
   return (
-    <Modal title={t("dispo_form_title")} onClose={onClose}>
+    <Modal title={initial ? t("dispo_form_edit_title") : t("dispo_form_title")} onClose={onClose}>
       <div className="form-grid">
         <label>{t("th_player")}
           <select value={form.playerId} onChange={(e) => setForm({ ...form, playerId: e.target.value })}>
@@ -69,8 +70,8 @@ function DispoForm({ players, onSave, onClose }) {
           if (!form.playerId) return;
           const { recurring, ...base } = form;
           const entry = recurring
-            ? { id: uid(), ...base, recurringDayOfWeek: new Date(form.startDate + "T00:00:00").getDay() }
-            : { id: uid(), ...base };
+            ? { ...base, id: base.id || uid(), recurringDayOfWeek: new Date(form.startDate + "T00:00:00").getDay() }
+            : { ...base, id: base.id || uid() };
           onSave(entry);
         }}
       >
@@ -147,17 +148,26 @@ export function Disponibilites({ players, availabilities, setAvailabilities, mat
   const { t } = useLang();
   const [showForm, setShowForm] = useState(false);
   const [historyMode, setHistoryMode] = useState("list");
-  const upcomingEvents = useMemo(() => getUpcomingEvents(matches, trainings), [matches, trainings]);
   const today = todayStr();
   const isRecurringEntry = (a) => a.recurringDayOfWeek !== undefined && a.recurringDayOfWeek !== null && a.recurringDayOfWeek !== "";
   const isExpiredRecurring = (a) => isRecurringEntry(a) && a.endDate && a.endDate < today;
   const activeRecurring = availabilities.filter((a) => isRecurringEntry(a) && !isExpiredRecurring(a));
-  const history = [...availabilities]
-    .filter((a) => !isRecurringEntry(a) || isExpiredRecurring(a))
+  const oneOff = availabilities.filter((a) => !isRecurringEntry(a));
+  const expiredRecurring = availabilities.filter((a) => isExpiredRecurring(a));
+  const upcomingOneOff = oneOff
+    .filter((a) => (a.endDate || a.startDate) >= today)
+    .sort((a, b) => (a.startDate > b.startDate ? 1 : -1));
+  const history = [...oneOff.filter((a) => (a.endDate || a.startDate) < today), ...expiredRecurring]
     .sort((a, b) => (a.startDate < b.startDate ? 1 : -1))
     .slice(0, 40);
 
-  const save = (entry) => { setAvailabilities([...availabilities, entry]); setShowForm(false); };
+  const [editingEntry, setEditingEntry] = useState(null);
+  const save = (entry) => {
+    const exists = availabilities.some((a) => a.id === entry.id);
+    setAvailabilities(exists ? availabilities.map((a) => (a.id === entry.id ? entry : a)) : [...availabilities, entry]);
+    setShowForm(false);
+    setEditingEntry(null);
+  };
   const remove = (id) => setAvailabilities(availabilities.filter((a) => a.id !== id));
 
   return (
@@ -168,49 +178,6 @@ export function Disponibilites({ players, availabilities, setAvailabilities, mat
       </div>
 
       {players.length === 0 && <p className="muted">{t("no_players_first")}</p>}
-
-      {players.length > 0 && (
-        <div className="panel" style={{ overflowX: "auto" }}>
-          <h3>{t("dispo_calendar_title")}</h3>
-          {upcomingEvents.length === 0 && <p className="muted">{t("no_upcoming_events")}</p>}
-          {upcomingEvents.length > 0 && (
-            <table className="stats-table">
-              <thead>
-                <tr>
-                  <th>{t("th_player")}</th>
-                  {upcomingEvents.map((ev) => {
-                    const Icon = ev.type === "match" ? CalendarDays : Dumbbell;
-                    return (
-                      <th key={ev.id}>
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                          <Icon size={12} />
-                          <span className="mono">{formatDate(ev.date).slice(0, 5)}</span>
-                        </div>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {players.map((p) => (
-                  <tr key={p.id}>
-                    <td>{p.name}</td>
-                    {upcomingEvents.map((ev) => {
-                      const entry = statusForDate(availabilities, p.id, ev.date);
-                      const status = entry?.status || "Disponible";
-                      return (
-                        <td key={ev.id} style={{ textAlign: "center" }}>
-                          <span className="status-dot" style={{ background: STATUS_COLORS[status] }} title={t(AVAILABILITY_KEYS[status])} />
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
 
       {activeRecurring.length > 0 && (
         <div className="panel">
@@ -223,6 +190,25 @@ export function Disponibilites({ players, availabilities, setAvailabilities, mat
                 <span style={{ flex: 1 }}>{p?.name || "—"}</span>
                 <span className="status-chip" style={statusChipStyle(a.status)}>{t(AVAILABILITY_KEYS[a.status])}</span>
                 <span className="muted mono" style={{ fontSize: 12.5 }}>{t("dispo_recurring_every")} {weekdayName}</span>
+                <button className="icon-btn" onClick={() => setEditingEntry(a)}><Pencil size={13} /></button>
+                {canDelete && <button className="icon-btn" onClick={() => remove(a.id)}><Trash2 size={13} /></button>}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {upcomingOneOff.length > 0 && (
+        <div className="panel">
+          <h3>{t("dispo_upcoming_title")}</h3>
+          {upcomingOneOff.map((a) => {
+            const p = players.find((x) => x.id === a.playerId);
+            return (
+              <div key={a.id} className="match-row">
+                <span style={{ flex: 1 }}>{p?.name || "—"}</span>
+                <span className="status-chip" style={statusChipStyle(a.status)}>{t(AVAILABILITY_KEYS[a.status])}</span>
+                <span className="muted mono" style={{ fontSize: 12.5 }}>{formatDate(a.startDate)}{a.endDate && a.endDate !== a.startDate ? ` → ${formatDate(a.endDate)}` : ""}</span>
+                <button className="icon-btn" onClick={() => setEditingEntry(a)}><Pencil size={13} /></button>
                 {canDelete && <button className="icon-btn" onClick={() => remove(a.id)}><Trash2 size={13} /></button>}
               </div>
             );
@@ -263,7 +249,10 @@ export function Disponibilites({ players, availabilities, setAvailabilities, mat
                         </td>
                         <td className="mono">{a.endDate ? formatDate(a.endDate) : (isRecurring ? t("dispo_recurring_ongoing") : "—")}</td>
                         <td className="muted">{a.note || "—"}</td>
-                        <td>{canDelete && <button className="icon-btn" onClick={() => remove(a.id)}><Trash2 size={13} /></button>}</td>
+                        <td style={{ display: "flex", gap: 4 }}>
+                          <button className="icon-btn" onClick={() => setEditingEntry(a)}><Pencil size={13} /></button>
+                          {canDelete && <button className="icon-btn" onClick={() => remove(a.id)}><Trash2 size={13} /></button>}
+                        </td>
                       </tr>
                     );
                   })}
@@ -274,7 +263,7 @@ export function Disponibilites({ players, availabilities, setAvailabilities, mat
         )}
       </div>
 
-      {showForm && <DispoForm players={players} onSave={save} onClose={() => setShowForm(false)} />}
+      {(showForm || editingEntry) && <DispoForm players={players} initial={editingEntry} onSave={save} onClose={() => { setShowForm(false); setEditingEntry(null); }} />}
     </div>
   );
 }
