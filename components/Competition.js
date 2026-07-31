@@ -28,7 +28,7 @@ function MatchForm({ initial, onSave, onClose }) {
   );
 }
 
-export function CompetitionList({ leagueMatches, setLeagueMatches, setView }) {
+export function CompetitionList({ leagueMatches, setLeagueMatches, setView, canDelete = true }) {
   const { t } = useLang();
   const [showForm, setShowForm] = useState(false);
   const [showManage, setShowManage] = useState(false);
@@ -136,7 +136,7 @@ export function CompetitionList({ leagueMatches, setLeagueMatches, setView }) {
                 <span className="mono muted" style={{ cursor: "pointer" }} onClick={() => setView("competition:" + m.id)}>{formatDate(m.date)}</span>
                 <span style={{ cursor: "pointer" }} onClick={() => setView("competition:" + m.id)}>{m.homeTeam} — {m.awayTeam}</span>
                 <span className="mono" style={{ cursor: "pointer" }} onClick={() => setView("competition:" + m.id)}>{m.homeScore !== "" ? m.homeScore : "–"}-{m.awayScore !== "" ? m.awayScore : "–"}</span>
-                <button className="icon-btn" onClick={() => removeMatch(m.id)}><Trash2 size={13} /></button>
+                {canDelete && <button className="icon-btn" onClick={() => removeMatch(m.id)}><Trash2 size={13} /></button>}
               </div>
             ))}
           </div>
@@ -160,7 +160,7 @@ export function CompetitionList({ leagueMatches, setLeagueMatches, setView }) {
                       <td className="mono">{formatDate(m.date)}</td>
                       <td>{m.homeTeam}</td><td>{m.awayTeam}</td>
                       <td className="mono">{m.homeScore}-{m.awayScore}</td>
-                      <td><button className="icon-btn" onClick={() => removeMatch(m.id)}><Trash2 size={13} /></button></td>
+                      <td>{canDelete && <button className="icon-btn" onClick={() => removeMatch(m.id)}><Trash2 size={13} /></button>}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -280,7 +280,7 @@ export function RosterColumn({ teamLabel, teamName, match, patch, showRating, al
                     </select>
                   </td>
                 )}
-                <td><button className="icon-btn" onClick={() => removeAppearance(a.id)}><Trash2 size={13} /></button></td>
+                <td>{canDelete && <button className="icon-btn" onClick={() => removeAppearance(a.id)}><Trash2 size={13} /></button>}</td>
               </tr>
             ))}
           </tbody>
@@ -513,7 +513,7 @@ function EventsTab({ match, patch }) {
                       </select>
                     )}
                   </td>
-                  <td><button className="icon-btn" onClick={() => removeEvent(ev.id)}><Trash2 size={13} /></button></td>
+                  <td>{canDelete && <button className="icon-btn" onClick={() => removeEvent(ev.id)}><Trash2 size={13} /></button>}</td>
                 </tr>
               );
             })}
@@ -526,7 +526,7 @@ function EventsTab({ match, patch }) {
 
 /* ---------------- détail du match ---------------- */
 
-export function CompetitionMatchDetail({ matchId, leagueMatches, setLeagueMatches, setView }) {
+export function CompetitionMatchDetail({ matchId, leagueMatches, setLeagueMatches, setView, canDelete = true }) {
   const { t } = useLang();
   const [tab, setTab] = useState("roster");
   const [showEditInfo, setShowEditInfo] = useState(false);

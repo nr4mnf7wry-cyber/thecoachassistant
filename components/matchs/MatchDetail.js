@@ -3,7 +3,7 @@ import { Plus, Trash2, ChevronLeft, Pencil, Download, Upload, Save } from "lucid
 import * as XLSX from "xlsx";
 import { useLang } from "../../lib/i18n";
 import {
-  uid, Badge, POSITIONS, POSITION_KEYS,
+  uid, Badge, POSITIONS, POSITION_KEYS, AVAILABILITY_KEYS,
   emptyMatchStat, computeMinutes, FORMATIONS, formationSlotCount, remapSlotsForFormation, GOAL_TYPE_GROUPS, emptyGoalEntry,
   isPlayerUnavailable, formatDate, clamp, sortByPosition, emptyLiveClock,
 } from "../../lib/shared";
@@ -609,7 +609,7 @@ function MatchLiveTab({ match, patch, squad, players, opponentProfiles }) {
   );
 }
 
-export function MatchDetail({ matchId, players, matches, setMatches, availabilities, leagueMatches, opponentProfiles, setOpponentProfiles, setView, currentUser, isEditorAssistant }) {
+export function MatchDetail({ matchId, players, matches, setMatches, availabilities, leagueMatches, opponentProfiles, setOpponentProfiles, setView, currentUser, isEditorAssistant, canDelete = true }) {
   const { t } = useLang();
   const [tab, setTab] = useState("composition");
   const [selected, setSelected] = useState(null); // {type:'slot',index} | {type:'bench', id}
@@ -799,7 +799,7 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button className="icon-btn" onClick={() => setShowEditInfo(true)}><Pencil size={16} /> {t("common_edit")}</button>
-          <button className="icon-btn" onClick={() => { if (confirm(t("confirm_delete_match"))) { setMatches(matches.filter((m) => m.id !== matchId)); setView("matchs"); } }}><Trash2 size={16} /></button>
+          {canDelete && <button className="icon-btn" onClick={() => { if (confirm(t("confirm_delete_match"))) { setMatches(matches.filter((m) => m.id !== matchId)); setView("matchs"); } }}><Trash2 size={16} /></button>}
         </div>
       </div>
 
@@ -925,7 +925,21 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
                 </div>
               );
             })}
-            {excludedCount > 0 && <p className="muted" style={{ marginTop: 10, fontSize: 12 }}>{excludedCount} {t("excluded_unavailable")}</p>}
+            {excludedCount > 0 && (
+              <div className="unavailable-section">
+                <div className="position-group-label" style={{ color: "var(--red)" }}>{t("unavailable_section_title")}</div>
+                <div className="chip-grid">
+                  {players.filter((p) => isPlayerUnavailable(availabilities, p.id, match.date)).map((p) => {
+                    const reason = isPlayerUnavailable(availabilities, p.id, match.date);
+                    return (
+                      <span key={p.id} className="player-chip unavailable" title={reason ? t(AVAILABILITY_KEYS[reason.status]) : ""}>
+                        <Badge number={p.number} size={22} /> {p.name}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="panel">

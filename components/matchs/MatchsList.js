@@ -6,7 +6,7 @@ import { DEFAULT_SEASON, formatDate, compareValues, useSortState, useSelection, 
 import { parseMatchSheet, downloadTemplate, newMatch } from "../../lib/matchHelpers";
 import { MatchForm } from "./MatchForm";
 
-export function Matchs({ matches, setMatches, currentSeason, setView }) {
+export function Matchs({ matches, setMatches, currentSeason, setView, canDelete = true }) {
   const { t } = useLang();
   const [showForm, setShowForm] = useState(false);
   const [subTab, setSubTab] = useState("upcoming");
@@ -68,7 +68,7 @@ export function Matchs({ matches, setMatches, currentSeason, setView }) {
       <div className="view-header">
         <h1>{t("matchs_title")}</h1>
         <div style={{ display: "flex", gap: 8 }}>
-          {selected.length > 0 && (
+          {selected.length > 0 && canDelete && (
             <button className="icon-btn" onClick={removeSelected}><Trash2 size={14} /> {t("delete_selection")} ({selected.length})</button>
           )}
           <button className="icon-btn" onClick={downloadTemplate} title={t("matchs_template")}><Download size={16} /></button>
@@ -110,7 +110,7 @@ export function Matchs({ matches, setMatches, currentSeason, setView }) {
                   <td className="muted" style={{ cursor: "pointer" }} onClick={() => setView("match:" + m.id)}>{m.homeAway === "domicile" ? t("home") : t("away")}</td>
                   <td className="muted" style={{ cursor: "pointer" }} onClick={() => setView("match:" + m.id)}>{m.competition || "—"}</td>
                   <td className="mono" style={{ cursor: "pointer" }} onClick={() => setView("match:" + m.id)}>{m.scoreFor !== "" ? m.scoreFor : "–"} - {m.scoreAgainst !== "" ? m.scoreAgainst : "–"}</td>
-                  <td><button className="icon-btn" onClick={() => removeOne(m.id)}><Trash2 size={13} /></button></td>
+                  <td>{canDelete && <button className="icon-btn" onClick={() => removeOne(m.id)}><Trash2 size={13} /></button>}</td>
                 </tr>
               ))}
             </tbody>

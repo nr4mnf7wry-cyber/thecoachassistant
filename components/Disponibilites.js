@@ -143,7 +143,7 @@ function MonthCalendar({ players, availabilities }) {
   );
 }
 
-export function Disponibilites({ players, availabilities, setAvailabilities, matches, trainings }) {
+export function Disponibilites({ players, availabilities, setAvailabilities, matches, trainings, canDelete = true }) {
   const { t } = useLang();
   const [showForm, setShowForm] = useState(false);
   const [historyMode, setHistoryMode] = useState("list");
@@ -223,7 +223,7 @@ export function Disponibilites({ players, availabilities, setAvailabilities, mat
                 <span style={{ flex: 1 }}>{p?.name || "—"}</span>
                 <span className="status-chip" style={statusChipStyle(a.status)}>{t(AVAILABILITY_KEYS[a.status])}</span>
                 <span className="muted mono" style={{ fontSize: 12.5 }}>{t("dispo_recurring_every")} {weekdayName}</span>
-                <button className="icon-btn" onClick={() => remove(a.id)}><Trash2 size={13} /></button>
+                {canDelete && <button className="icon-btn" onClick={() => remove(a.id)}><Trash2 size={13} /></button>}
               </div>
             );
           })}
@@ -263,7 +263,7 @@ export function Disponibilites({ players, availabilities, setAvailabilities, mat
                         </td>
                         <td className="mono">{a.endDate ? formatDate(a.endDate) : (isRecurring ? t("dispo_recurring_ongoing") : "—")}</td>
                         <td className="muted">{a.note || "—"}</td>
-                        <td><button className="icon-btn" onClick={() => remove(a.id)}><Trash2 size={13} /></button></td>
+                        <td>{canDelete && <button className="icon-btn" onClick={() => remove(a.id)}><Trash2 size={13} /></button>}</td>
                       </tr>
                     );
                   })}

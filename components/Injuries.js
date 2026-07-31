@@ -54,7 +54,7 @@ function InjuryForm({ players, initial, onSave, onClose }) {
   );
 }
 
-export function Injuries({ players, injuries, setInjuries, availabilities, setAvailabilities }) {
+export function Injuries({ players, injuries, setInjuries, availabilities, setAvailabilities, canDelete = true }) {
   const { t } = useLang();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -159,7 +159,7 @@ export function Injuries({ players, injuries, setInjuries, availabilities, setAv
                     <td><span className="status-chip" style={{ background: STATUS_COLORS[status] }}>{t(STATUS_KEYS[status])}</span></td>
                     <td style={{ display: "flex", gap: 4 }}>
                       <button className="icon-btn" onClick={() => { setEditing(i); setShowForm(true); }}><Pencil size={13} /></button>
-                      <button className="icon-btn" onClick={() => remove(i.id)}><Trash2 size={13} /></button>
+                      {canDelete && <button className="icon-btn" onClick={() => remove(i.id)}><Trash2 size={13} /></button>}
                     </td>
                   </tr>
                 );

@@ -107,7 +107,7 @@ function LibraryPicker({ exerciseLibrary, onPick, onClose }) {
 
 /* ---------------- list ---------------- */
 
-export function Entrainements({ players, trainings, setTrainings, availabilities, currentSeason, setView }) {
+export function Entrainements({ players, trainings, setTrainings, availabilities, currentSeason, setView, canDelete = true }) {
   const { t } = useLang();
   const [showForm, setShowForm] = useState(false);
   const [subTab, setSubTab] = useState("upcoming");
@@ -181,7 +181,7 @@ export function Entrainements({ players, trainings, setTrainings, availabilities
               <span className="mono muted" style={{ cursor: "pointer" }} onClick={() => setView("entrainements:" + t2.id)}>{formatDate(t2.date)}</span>
               <span style={{ cursor: "pointer" }} onClick={() => setView("entrainements:" + t2.id)}>{t2.objective || t("entr_detail_default_title")}</span>
               <span className="muted mono" style={{ cursor: "pointer" }} onClick={() => setView("entrainements:" + t2.id)}>{presentCount}/{trackedCount} {t("entr_present_count")}</span>
-              <button className="icon-btn" onClick={() => removeOne(t2.id)}><Trash2 size={13} /></button>
+              {canDelete && <button className="icon-btn" onClick={() => removeOne(t2.id)}><Trash2 size={13} /></button>}
             </div>
           );
         })}

@@ -182,10 +182,7 @@ function Sidebar({ view, setView, teamName, setTeamName, seasons, currentSeason,
           {!collapsed && (
             <div className="account-info">
               <div className="account-name">{currentUser.username}</div>
-              <div className="account-role">
-                {t(currentUser.role === "head" ? "role_head" : "role_assistant")}
-                {currentUser.role === "assistant" && ` · ${t(currentUser.permissionLevel === "editor" ? "permission_editor" : "permission_readonly")}`}
-              </div>
+              <div className="account-role">{t(currentUser.role === "head" ? "role_head" : "role_assistant")}</div>
             </div>
           )}
           <button className="icon-btn" onClick={logout} data-label={collapsed ? t("nav_logout") : undefined}><LogOut size={14} /></button>
@@ -305,7 +302,7 @@ export default function App() {
       bodyMetrics={bodyMetrics} setBodyMetrics={setBodyMetrics}
       allMatches={matches} setMatches={setMatches}
       allTrainings={trainings} setTrainings={setTrainings}
-      setView={setView}
+      setView={setView} canDelete={isHead}
     />
   );
   else if (view.startsWith("joueur:")) content = (
@@ -318,24 +315,24 @@ export default function App() {
     />
   );
   else if (view === "staff") content = <Staff staff={staff} setStaff={setStaff} />;
-  else if (view === "injuries") content = <Injuries players={players} injuries={injuries} setInjuries={setInjuriesGuarded} availabilities={availabilities} setAvailabilities={setAvailabilitiesGuarded} />;
+  else if (view === "injuries") content = <Injuries players={players} injuries={injuries} setInjuries={setInjuriesGuarded} availabilities={availabilities} setAvailabilities={setAvailabilitiesGuarded} canDelete={isHead} />;
   else if (view === "live") content = <LiveMatch liveSessions={liveSessions} setLiveSessions={setLiveSessions} opponentProfiles={opponentProfiles} />;
   else if (view === "stats") content = <Statistiques players={players} matches={playedSeasonMatches} trainings={playedSeasonTrainings} evaluations={evaluations} />;
   else if (view === "analyses") content = <Analyses players={players} matches={playedSeasonMatches} trainings={playedSeasonTrainings} />;
   else if (view === "competitors" || view.startsWith("competitors:")) content = <Concurrents leagueMatches={leagueMatches} opponentProfiles={opponentProfiles} initialTeam={view.startsWith("competitors:") ? view.slice("competitors:".length) : ""} setView={setView} />;
-  else if (view === "competition") content = <CompetitionList leagueMatches={leagueMatches} setLeagueMatches={setLeagueMatches} setView={setView} />;
-  else if (view.startsWith("competition:")) content = <CompetitionMatchDetail matchId={view.split(":")[1]} leagueMatches={leagueMatches} setLeagueMatches={setLeagueMatches} setView={setView} />;
+  else if (view === "competition") content = <CompetitionList leagueMatches={leagueMatches} setLeagueMatches={setLeagueMatches} setView={setView} canDelete={isHead} />;
+  else if (view.startsWith("competition:")) content = <CompetitionMatchDetail matchId={view.split(":")[1]} leagueMatches={leagueMatches} setLeagueMatches={setLeagueMatches} setView={setView} canDelete={isHead} />;
   else if (view.startsWith("opponent:")) content = <OpponentProfile teamName={view.slice("opponent:".length)} opponentProfiles={opponentProfiles} setOpponentProfiles={setOpponentProfiles} setView={setView} />;
-  else if (view === "disponibilites") content = <Disponibilites players={players} availabilities={availabilities} setAvailabilities={setAvailabilitiesGuarded} matches={seasonMatches} trainings={seasonTrainings} />;
-  else if (view === "entrainements") content = <Entrainements players={players} trainings={trainings} setTrainings={setTrainingsGuarded} availabilities={availabilities} currentSeason={currentSeason} setView={setView} />;
+  else if (view === "disponibilites") content = <Disponibilites players={players} availabilities={availabilities} setAvailabilities={setAvailabilitiesGuarded} matches={seasonMatches} trainings={seasonTrainings} canDelete={isHead} />;
+  else if (view === "entrainements") content = <Entrainements players={players} trainings={trainings} setTrainings={setTrainingsGuarded} availabilities={availabilities} currentSeason={currentSeason} setView={setView} canDelete={isHead} />;
   else if (view.startsWith("entrainements:")) content = (
     <EntrainementDetail
       trainingId={view.split(":")[1]} players={players} trainings={trainings} setTrainings={setTrainings}
       exerciseLibrary={exerciseLibrary} setExerciseLibrary={setExerciseLibrary} availabilities={availabilities} setView={setView}
     />
   );
-  else if (view === "matchs") content = <Matchs matches={matches} setMatches={setMatches} currentSeason={currentSeason} setView={setView} />;
-  else if (view.startsWith("match:")) content = <MatchDetail matchId={view.split(":")[1]} players={players} matches={matches} setMatches={setMatches} availabilities={availabilities} leagueMatches={leagueMatches} opponentProfiles={opponentProfiles} setOpponentProfiles={setOpponentProfiles} setView={setView} currentUser={currentUser} isEditorAssistant={isEditorAssistant} />;
+  else if (view === "matchs") content = <Matchs matches={matches} setMatches={setMatches} currentSeason={currentSeason} setView={setView} canDelete={isHead} />;
+  else if (view.startsWith("match:")) content = <MatchDetail matchId={view.split(":")[1]} players={players} matches={matches} setMatches={setMatches} availabilities={availabilities} leagueMatches={leagueMatches} opponentProfiles={opponentProfiles} setOpponentProfiles={setOpponentProfiles} setView={setView} currentUser={currentUser} isEditorAssistant={isEditorAssistant} canDelete={isHead} />;
   else if (view === "reglages") content = (
     <Reglages
       teamName={teamName}
@@ -567,6 +564,8 @@ export default function App() {
         .position-group { margin-bottom: 14px; }
         .position-group-label { font-family:'Space Grotesk',sans-serif; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; color:var(--gold); margin-bottom:8px; padding-bottom:4px; border-bottom:1px solid var(--pitch-line); }
         .player-chip { display:flex; align-items:center; gap:8px; background:color-mix(in srgb, var(--chalk) 5%, transparent); border:1px solid var(--pitch-line); color:var(--chalk-dim); border-radius:6px; padding:5px 12px 5px 5px; font-size:13px; cursor:pointer; }
+        .unavailable-section { margin-top:14px; padding-top:14px; border-top:1px solid var(--pitch-line); }
+        .player-chip.unavailable { background:rgba(var(--red-rgb),0.08); border-color:rgba(var(--red-rgb),0.3); color:var(--red); cursor:not-allowed; opacity:0.85; }
         .player-chip.selected { background:var(--gold); border-color:var(--gold); color:var(--on-accent); font-weight:600; }
         .player-chip .badge-number { background:rgba(0,0,0,0.15); color:inherit; }
         .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.55); display:flex; align-items:center; justify-content:center; z-index:50; padding:20px; }
@@ -650,7 +649,6 @@ export default function App() {
         <div className="topbar">
           <span className="topbar-title">{pageTitle(view, t)}</span>
           <GlobalSearch players={players} staff={staff} matches={matches} trainings={trainings} leagueMatches={leagueMatches} setView={setView} />
-          {isReadOnly && <span className="readonly-badge">{t("readonly_badge")}</span>}
           <button className="icon-btn" onClick={toggleDarkMode} title={darkMode ? t("light_mode") : t("dark_mode")}>
             {darkMode ? <Sun size={15} /> : <Moon size={15} />}
           </button>
