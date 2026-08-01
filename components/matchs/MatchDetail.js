@@ -79,8 +79,7 @@ function TacticalPitch({ rowSlices, slots, positions, players, selected, onSlotC
     x: ZONE_COLS.reduce((best, c) => (Math.abs(c - x) < Math.abs(best - x) ? c : best), ZONE_COLS[0]),
     y: ZONE_ROWS.reduce((best, r) => (Math.abs(r - y) < Math.abs(best - y) ? r : best), ZONE_ROWS[0]),
   });
-  const POS_COLOR = { "Gardien": "var(--pos-gk)", "Défenseur": "var(--pos-def)", "Milieu": "var(--pos-mid)", "Attaquant": "var(--pos-att)" };
-  const posColor = (p) => POS_COLOR[p?.position] || "var(--gold)";
+  const posColor = () => "var(--gold)";
 
   // Position effective de chaque emplacement (celle glissée à la main si elle existe, sinon celle du gabarit
   // de formation) : calculée une seule fois, réutilisée à la fois pour l'affichage et pour détecter un échange.
@@ -210,23 +209,6 @@ function TacticalPitch({ rowSlices, slots, positions, players, selected, onSlotC
   );
 }
 
-function PositionLegend() {
-  const { t } = useLang();
-  const items = [
-    ["var(--pos-gk)", "Gardien"], ["var(--pos-def)", "Défenseur"], ["var(--pos-mid)", "Milieu"], ["var(--pos-att)", "Attaquant"],
-  ];
-  return (
-    <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 10 }}>
-      {items.map(([color, pos]) => (
-        <span key={pos} className="muted" style={{ fontSize: 11.5, display: "flex", alignItems: "center", gap: 5 }}>
-          <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block" }} />
-          {t(POSITION_KEYS[pos])}
-        </span>
-      ))}
-    </div>
-  );
-}
-
 function TacticalVariantBlock({ label, variant, match, patch, squad, players, optional }) {
   const { t } = useLang();
   const [selected, setSelected] = useState(null);
@@ -306,7 +288,6 @@ function TacticalVariantBlock({ label, variant, match, patch, squad, players, op
       {enabled && poolPlayers.length > 0 && (
         <>
           <p className="muted" style={{ marginBottom: 10, fontSize: 12.5 }}>{t("swap_hint")}</p>
-          <PositionLegend />
           <div className="tactical-pitch-wrap">
             <TacticalPitch rowSlices={rowSlices} slots={slots} positions={positions} players={players} selected={selected} onSlotClick={clickSlot} onDragEnd={dragEnd} />
           </div>
@@ -1026,7 +1007,6 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
 
             {squad.length === 0 && <p className="muted">{t("no_squad_yet")}</p>}
             <p className="muted" style={{ marginBottom: 10 }}>{t("swap_hint")}</p>
-            <PositionLegend />
 
             {squad.length > 0 && (
               <div className="tactical-pitch-wrap">

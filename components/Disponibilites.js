@@ -148,6 +148,7 @@ export function Disponibilites({ players, availabilities, setAvailabilities, mat
   const { t } = useLang();
   const [showForm, setShowForm] = useState(false);
   const [historyMode, setHistoryMode] = useState("list");
+  const upcomingEvents = useMemo(() => getUpcomingEvents(matches, trainings), [matches, trainings]);
   const today = todayStr();
   const isRecurringEntry = (a) => a.recurringDayOfWeek !== undefined && a.recurringDayOfWeek !== null && a.recurringDayOfWeek !== "";
   const isExpiredRecurring = (a) => isRecurringEntry(a) && a.endDate && a.endDate < today;
@@ -179,6 +180,37 @@ export function Disponibilites({ players, availabilities, setAvailabilities, mat
 
       {players.length === 0 && <p className="muted">{t("no_players_first")}</p>}
 
+      {players.length > 0 && (
+        <div className="panel">
+          <h3>{t("dispo_upcoming_absences_title")}</h3>
+          {upcomingEvents.length === 0 && <p className="muted">{t("no_upcoming_events")}</p>}
+          {upcomingEvents.map((ev) => {
+            const Icon = ev.type === "match" ? CalendarDays : Dumbbell;
+            const absentees = players
+              .map((p) => ({ p, entry: statusForDate(availabilities, p.id, ev.date) }))
+              .filter(({ entry }) => entry && entry.status !== "Disponible");
+            return (
+              <div key={ev.id} className="dispo-event-row">
+                <div className="dispo-event-date">
+                  <Icon size={13} />
+                  <span className="mono">{formatDate(ev.date)}</span>
+                </div>
+                {absentees.length === 0 ? (
+                  <span className="muted" style={{ fontSize: 12.5 }}>{t("dispo_all_available")}</span>
+                ) : (
+                  <div className="chip-grid">
+                    {absentees.map(({ p, entry }) => (
+                      <span key={p.id} className="unavail-chip" title={entry.note || ""}>
+                        {p.name} <span className="muted">· {t(AVAILABILITY_KEYS[entry.status])}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
       {activeRecurring.length > 0 && (
         <div className="panel">
           <h3>{t("dispo_active_rules_title")}</h3>
