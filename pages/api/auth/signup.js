@@ -1,11 +1,15 @@
 import crypto from "crypto";
 import { getUsers, saveUsers, hashPassword, newSessionToken, setSessionCookie, publicUser, createClub, migrateLegacyIfNeeded } from "../../../lib/auth";
 
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") { res.status(405).end(); return; }
   try {
     await migrateLegacyIfNeeded();
-    const { teamName, username, password, accessCode } = req.body || {};
+    const { teamName, username, password, accessCode, email } = req.body || {};
 
     if (!process.env.SIGNUP_CODE) {
       res.status(503).json({ error: "Les inscriptions ne sont pas encore ouvertes." });
@@ -18,8 +22,13 @@ export default async function handler(req, res) {
 
     const cleanTeamName = String(teamName || "").trim();
     const cleanUsername = String(username || "").trim();
+    const cleanEmail = String(email || "").trim().toLowerCase();
     if (!cleanTeamName || !cleanUsername || !password || password.length < 8) {
       res.status(400).json({ error: "Nom d'équipe et nom d'utilisateur requis, mot de passe d'au moins 8 caractères." });
+      return;
+    }
+    if (!cleanEmail || !isValidEmail(cleanEmail)) {
+      res.status(400).json({ error: "Adresse e-mail valide requise (nécessaire pour récupérer ton compte)." });
       return;
     }
     const users = await getUsers();
@@ -34,6 +43,7 @@ export default async function handler(req, res) {
       id: crypto.randomUUID(),
       clubId: club.id,
       username: cleanUsername,
+      email: cleanEmail,
       passwordHash: hashPassword(password),
       role: "head",
       createdAt: new Date().toISOString(),

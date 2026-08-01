@@ -155,10 +155,7 @@ export function Disponibilites({ players, availabilities, setAvailabilities, mat
   const activeRecurring = availabilities.filter((a) => isRecurringEntry(a) && !isExpiredRecurring(a));
   const oneOff = availabilities.filter((a) => !isRecurringEntry(a));
   const expiredRecurring = availabilities.filter((a) => isExpiredRecurring(a));
-  const upcomingOneOff = oneOff
-    .filter((a) => (a.endDate || a.startDate) >= today)
-    .sort((a, b) => (a.startDate > b.startDate ? 1 : -1));
-  const history = [...oneOff.filter((a) => (a.endDate || a.startDate) < today), ...expiredRecurring]
+  const history = [...oneOff, ...expiredRecurring]
     .sort((a, b) => (a.startDate < b.startDate ? 1 : -1))
     .slice(0, 40);
 
@@ -230,23 +227,6 @@ export function Disponibilites({ players, availabilities, setAvailabilities, mat
         </div>
       )}
 
-      {upcomingOneOff.length > 0 && (
-        <div className="panel">
-          <h3>{t("dispo_upcoming_title")}</h3>
-          {upcomingOneOff.map((a) => {
-            const p = players.find((x) => x.id === a.playerId);
-            return (
-              <div key={a.id} className="match-row">
-                <span style={{ flex: 1 }}>{p?.name || "—"}</span>
-                <span className="status-chip" style={statusChipStyle(a.status)}>{t(AVAILABILITY_KEYS[a.status])}</span>
-                <span className="muted mono" style={{ fontSize: 12.5 }}>{formatDate(a.startDate)}{a.endDate && a.endDate !== a.startDate ? ` → ${formatDate(a.endDate)}` : ""}</span>
-                <button className="icon-btn" onClick={() => setEditingEntry(a)}><Pencil size={13} /></button>
-                {canDelete && <button className="icon-btn" onClick={() => remove(a.id)}><Trash2 size={13} /></button>}
-              </div>
-            );
-          })}
-        </div>
-      )}
 
       <div className="panel">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>

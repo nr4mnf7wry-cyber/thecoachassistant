@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import {
   LayoutDashboard, Users, UserCog, CalendarDays, BarChart3,
   ShieldHalf, ClipboardCheck, UserCheck, LineChart, Plus, Pencil, Settings, Trophy, Layers, HeartPulse, Radio, LogOut,
-  ChevronLeft, ChevronRight, Sun, Moon,
+  ChevronLeft, ChevronRight, Sun, Moon, MessageCircle,
 } from "lucide-react";
 import { useLang } from "../lib/i18n";
 import { useTeamData, Modal, DEFAULT_SEASON, todayStr, isMatchPlayed, isTrainingPlayed } from "../lib/shared";
@@ -224,6 +224,20 @@ export default function App() {
     const next = !sidebarCollapsed;
     setSidebarCollapsed(next);
     localStorage.setItem("sidebar_collapsed", next ? "1" : "0");
+  };
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackSent, setFeedbackSent] = useState(false);
+  const sendFeedback = async () => {
+    if (!feedbackMessage.trim()) return;
+    await fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: feedbackMessage }),
+    });
+    setFeedbackSent(true);
+    setFeedbackMessage("");
+    setTimeout(() => { setShowFeedback(false); setFeedbackSent(false); }, 1500);
   };
   useEffect(() => {
     (async () => {
@@ -654,6 +668,9 @@ export default function App() {
         <div className="topbar">
           <span className="topbar-title">{pageTitle(view, t)}</span>
           <GlobalSearch players={players} staff={staff} matches={matches} trainings={trainings} leagueMatches={leagueMatches} setView={setView} />
+          <button className="icon-btn" onClick={() => setShowFeedback(true)} title={t("feedback_button")}>
+            <MessageCircle size={15} />
+          </button>
           <button className="icon-btn" onClick={toggleDarkMode} title={darkMode ? t("light_mode") : t("dark_mode")}>
             {darkMode ? <Sun size={15} /> : <Moon size={15} />}
           </button>
@@ -666,6 +683,26 @@ export default function App() {
           {!loaded ? <p className="muted">…</p> : content}
         </div>
       </div>
+      {showFeedback && (
+        <Modal title={t("feedback_title")} onClose={() => setShowFeedback(false)}>
+          {feedbackSent ? (
+            <p className="muted">{t("feedback_sent")}</p>
+          ) : (
+            <>
+              <p className="muted" style={{ marginBottom: 10, fontSize: 12.5 }}>{t("feedback_hint")}</p>
+              <textarea
+                className="bulk-textarea"
+                rows={5}
+                value={feedbackMessage}
+                onChange={(e) => setFeedbackMessage(e.target.value)}
+                placeholder={t("feedback_placeholder")}
+                style={{ marginBottom: 12 }}
+              />
+              <button className="btn-gold" onClick={sendFeedback}>{t("feedback_send")}</button>
+            </>
+          )}
+        </Modal>
+      )}
     </div>
   );
 }

@@ -5,22 +5,36 @@ import { useLang } from "../lib/i18n";
 
 export default function Login() {
   const { t, lang, setLang } = useLang();
-  const [mode, setMode] = useState("login"); // "login" | "signup"
+  const [mode, setMode] = useState("login"); // "login" | "signup" | "forgot"
   const [teamName, setTeamName] = useState("");
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [accessCode, setAccessCode] = useState("");
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const submit = async (e) => {
     e.preventDefault();
     setError("");
+    setNotice("");
     setLoading(true);
     try {
+      if (mode === "forgot") {
+        const res = await fetch("/api/auth/forgot-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username }),
+        });
+        const data = await res.json();
+        setNotice(data.message || t("forgot_password_sent"));
+        setLoading(false);
+        return;
+      }
       const endpoint = mode === "signup" ? "/api/auth/signup" : "/api/auth/login";
-      const body = mode === "signup" ? { teamName, username, password, accessCode } : { username, password };
+      const body = mode === "signup" ? { teamName, username, password, accessCode, email } : { username, password };
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -52,8 +66,8 @@ export default function Login() {
       </div>
 
       <form onSubmit={submit} style={styles.card}>
-        <h1 style={styles.title}>{mode === "signup" ? t("signup_title") : t("login_title")}</h1>
-        <p style={styles.sub}>{mode === "signup" ? t("signup_sub") : t("login_sub")}</p>
+        <h1 style={styles.title}>{mode === "signup" ? t("signup_title") : mode === "forgot" ? t("forgot_password_title") : t("login_title")}</h1>
+        <p style={styles.sub}>{mode === "signup" ? t("signup_sub") : mode === "forgot" ? t("forgot_password_sub") : t("login_sub")}</p>
 
         {mode === "signup" && (
           <>
@@ -62,6 +76,13 @@ export default function Login() {
               type="text" autoFocus value={teamName}
               onChange={(e) => setTeamName(e.target.value)}
               placeholder={t("team_name_placeholder")}
+              style={styles.input}
+            />
+            <label style={styles.label}>{t("field_email")}</label>
+            <input
+              type="email" value={email} autoComplete="email"
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={t("email_placeholder")}
               style={styles.input}
             />
             <label style={styles.label}>{t("field_access_code")}</label>
@@ -76,33 +97,51 @@ export default function Login() {
         <label style={styles.label}>{t("field_username")}</label>
         <input
           type="text"
-          autoFocus={mode === "login"}
+          autoFocus={mode !== "signup"}
           autoComplete="username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           placeholder={t("username_placeholder")}
           style={styles.input}
         />
-        <label style={styles.label}>{t("field_password")}</label>
-        <input
-          type="password"
-          autoComplete={mode === "signup" ? "new-password" : "current-password"}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder={t("login_placeholder")}
-          style={styles.input}
-        />
+        {mode !== "forgot" && (
+          <>
+            <label style={styles.label}>{t("field_password")}</label>
+            <input
+              type="password"
+              autoComplete={mode === "signup" ? "new-password" : "current-password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={t("login_placeholder")}
+              style={styles.input}
+            />
+          </>
+        )}
         {mode === "signup" && <p style={styles.hint}>{t("bootstrap_password_hint")}</p>}
+        {mode === "login" && (
+          <p style={{ textAlign: "right", margin: "-8px 0 14px" }}>
+            <button type="button" style={styles.switchLink} onClick={() => { setMode("forgot"); setError(""); setNotice(""); }}>
+              {t("forgot_password_link")}
+            </button>
+          </p>
+        )}
         {error && <p style={styles.error}>{error}</p>}
+        {notice && <p style={{ ...styles.hint, color: "#2563EB" }}>{notice}</p>}
         <button type="submit" disabled={loading} style={styles.button}>
-          {loading ? t("login_verifying") : mode === "signup" ? t("bootstrap_button") : t("login_button")}
+          {loading ? t("login_verifying") : mode === "signup" ? t("bootstrap_button") : mode === "forgot" ? t("forgot_password_button") : t("login_button")}
         </button>
 
         <p style={styles.switchRow}>
-          {mode === "login" ? t("no_team_yet") : t("already_have_team")}{" "}
-          <button type="button" style={styles.switchLink} onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); }}>
-            {mode === "login" ? t("create_team_link") : t("login_link")}
-          </button>
+          {mode === "forgot" ? (
+            <button type="button" style={styles.switchLink} onClick={() => { setMode("login"); setError(""); setNotice(""); }}>{t("login_link")}</button>
+          ) : (
+            <>
+              {mode === "login" ? t("no_team_yet") : t("already_have_team")}{" "}
+              <button type="button" style={styles.switchLink} onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); }}>
+                {mode === "login" ? t("create_team_link") : t("login_link")}
+              </button>
+            </>
+          )}
         </p>
       </form>
     </div>

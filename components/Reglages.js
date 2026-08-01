@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Download, Upload, Users, UserPlus, Trash2 } from "lucide-react";
+import { Download, Upload, Users, UserPlus, Trash2, CreditCard } from "lucide-react";
 import { useLang } from "../lib/i18n";
 import { todayStr } from "../lib/shared";
 
@@ -70,6 +70,7 @@ export function Reglages({ data, setters, teamName, currentUser }) {
     <div>
       <div className="view-header"><h1>{t("settings_title")}</h1></div>
 
+      {currentUser?.role === "head" && <SubscriptionPanel />}
       {currentUser?.role === "head" && <AccountsPanel />}
 
       <div className="panel panel-sections panel-sections-v">
@@ -96,6 +97,72 @@ export function Reglages({ data, setters, teamName, currentUser }) {
         )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function SubscriptionPanel() {
+  const { t } = useLang();
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const load = () => {
+    fetch("/api/billing/status").then((r) => r.json()).then(setStatus).catch(() => setStatus(null));
+  };
+  useEffect(() => { load(); }, []);
+
+  const goToCheckout = async () => {
+    setLoading(true);
+    setError("");
+    const res = await fetch("/api/billing/checkout", { method: "POST" });
+    const data = await res.json();
+    setLoading(false);
+    if (data.url) window.location.href = data.url;
+    else setError(data.error || t("billing_error"));
+  };
+
+  const goToPortal = async () => {
+    setLoading(true);
+    setError("");
+    const res = await fetch("/api/billing/portal", { method: "POST" });
+    const data = await res.json();
+    setLoading(false);
+    if (data.url) window.location.href = data.url;
+    else setError(data.error || t("billing_error"));
+  };
+
+  if (!status) return null;
+
+  const trialDaysLeft = status.trialEndsAt ? Math.max(0, Math.ceil((new Date(status.trialEndsAt) - new Date()) / 86400000)) : 0;
+
+  return (
+    <div className="panel">
+      <h3><CreditCard size={15} style={{ marginRight: 6, verticalAlign: -2 }} />{t("panel_subscription")}</h3>
+      {!status.billingConfigured && (
+        <p className="muted" style={{ marginBottom: 14 }}>{t("billing_not_configured")}</p>
+      )}
+      {status.billingConfigured && status.subscriptionStatus === "active" && (
+        <>
+          <p style={{ marginBottom: 14 }}>
+            <span className="status-chip" style={{ background: "var(--gold)" }}>{t("billing_active")}</span>
+          </p>
+          <button className="icon-btn" onClick={goToPortal} disabled={loading}>{t("billing_manage")}</button>
+        </>
+      )}
+      {status.billingConfigured && status.subscriptionStatus === "trialing" && (
+        <>
+          <p className="muted" style={{ marginBottom: 14 }}>{t("billing_trial_remaining")} {trialDaysLeft} {t("billing_days")}</p>
+          <button className="btn-gold" onClick={goToCheckout} disabled={loading}>{t("billing_subscribe")}</button>
+        </>
+      )}
+      {status.billingConfigured && (status.subscriptionStatus === "cancelled" || status.subscriptionStatus === "past_due") && (
+        <>
+          <p style={{ marginBottom: 14 }}><span className="status-chip" style={{ background: "var(--red)" }}>{t("billing_inactive")}</span></p>
+          <button className="btn-gold" onClick={goToCheckout} disabled={loading}>{t("billing_subscribe")}</button>
+        </>
+      )}
+      {error && <p className="mono" style={{ color: "var(--red)", fontSize: 12.5, marginTop: 10 }}>{error}</p>}
     </div>
   );
 }
