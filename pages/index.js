@@ -206,6 +206,7 @@ export default function App() {
     players, staff, matches, trainings, evaluations, availabilities,
     exerciseLibrary, bodyMetrics, leagueMatches, opponentProfiles,
     injuries, developmentGoals, liveSessions, teamName, seasons, currentSeason,
+    noteWeightHead,
     loaded, saveState, loadError, retryLoad,
   } = teamData;
 
@@ -275,6 +276,7 @@ export default function App() {
   const setTeamName = canEditRestricted ? teamData.setTeamName : noop;
   const setSeasons = canEditRestricted ? teamData.setSeasons : noop;
   const setCurrentSeason = canEditShared ? teamData.setCurrentSeason : noop;
+  const setNoteWeightHead = canEditRestricted ? teamData.setNoteWeightHead : noop;
 
   // Un assistant éditeur ne peut jamais réduire une des listes qu'il est autorisé à modifier :
   // blocage immédiat côté interface (le serveur applique la même règle en dernier recours).
@@ -346,11 +348,13 @@ export default function App() {
     />
   );
   else if (view === "matchs") content = <Matchs matches={matches} setMatches={setMatches} currentSeason={currentSeason} setView={setView} canDelete={isHead} />;
-  else if (view.startsWith("match:")) content = <MatchDetail matchId={view.split(":")[1]} players={players} matches={matches} setMatches={setMatches} availabilities={availabilities} leagueMatches={leagueMatches} opponentProfiles={opponentProfiles} setOpponentProfiles={setOpponentProfiles} setView={setView} currentUser={currentUser} isEditorAssistant={isEditorAssistant} canDelete={isHead} />;
+  else if (view.startsWith("match:")) content = <MatchDetail matchId={view.split(":")[1]} players={players} matches={matches} setMatches={setMatches} availabilities={availabilities} leagueMatches={leagueMatches} opponentProfiles={opponentProfiles} setOpponentProfiles={setOpponentProfiles} setView={setView} currentUser={currentUser} isEditorAssistant={isEditorAssistant} canDelete={isHead} noteWeightHead={noteWeightHead} />;
   else if (view === "reglages") content = (
     <Reglages
       teamName={teamName}
       currentUser={currentUser}
+      noteWeightHead={noteWeightHead}
+      setNoteWeightHead={setNoteWeightHead}
       data={{ players, staff, matches, trainings, evaluations, availabilities, exerciseLibrary, bodyMetrics, leagueMatches, opponentProfiles, injuries, developmentGoals, liveSessions, teamName, seasons, currentSeason }}
       setters={{
         setPlayers, setStaff, setMatches, setTrainings, setEvaluations, setAvailabilities,

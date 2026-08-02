@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { Download, Upload, Users, UserPlus, Trash2, CreditCard } from "lucide-react";
+import { Download, Upload, Users, UserPlus, Trash2, CreditCard, Percent } from "lucide-react";
 import { useLang } from "../lib/i18n";
 import { todayStr } from "../lib/shared";
 
-export function Reglages({ data, setters, teamName, currentUser }) {
+export function Reglages({ data, setters, teamName, currentUser, noteWeightHead, setNoteWeightHead }) {
   const { t } = useLang();
   const fileRef = useRef(null);
   const [message, setMessage] = useState(null);
@@ -71,6 +71,23 @@ export function Reglages({ data, setters, teamName, currentUser }) {
       <div className="view-header"><h1>{t("settings_title")}</h1></div>
 
       {currentUser?.role === "head" && <SubscriptionPanel />}
+      {currentUser?.role === "head" && (
+        <div className="panel">
+          <h3><Percent size={15} style={{ marginRight: 6, verticalAlign: -2 }} />{t("panel_note_weight")}</h3>
+          <p className="muted" style={{ marginBottom: 14, fontSize: 12.5 }}>{t("note_weight_help")}</p>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <input
+              type="range" min="0" max="1" step="0.05"
+              value={noteWeightHead ?? 0.5}
+              onChange={(e) => setNoteWeightHead(Number(e.target.value))}
+              style={{ flex: 1, maxWidth: 280 }}
+            />
+            <span className="mono" style={{ fontSize: 13, fontWeight: 600, minWidth: 130 }}>
+              {t("note_weight_head")} {Math.round((noteWeightHead ?? 0.5) * 100)}% · {t("note_weight_assistant")} {Math.round((1 - (noteWeightHead ?? 0.5)) * 100)}%
+            </span>
+          </div>
+        </div>
+      )}
       {currentUser?.role === "head" && <AccountsPanel />}
 
       <div className="panel panel-sections panel-sections-v">

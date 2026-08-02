@@ -4,7 +4,7 @@ import * as XLSX from "xlsx";
 import { useLang } from "../../lib/i18n";
 import {
   uid, Badge, POSITIONS, POSITION_KEYS, AVAILABILITY_KEYS,
-  emptyMatchStat, computeMinutes, FORMATIONS, formationSlotCount, remapSlotsForFormation, GOAL_TYPE_GROUPS, emptyGoalEntry,
+  emptyMatchStat, computeMinutes, computeBlendedNote, FORMATIONS, formationSlotCount, remapSlotsForFormation, GOAL_TYPE_GROUPS, emptyGoalEntry,
   isPlayerUnavailable, formatDate, clamp, sortByPosition, emptyLiveClock,
 } from "../../lib/shared";
 import {
@@ -590,7 +590,7 @@ function MatchLiveTab({ match, patch, squad, players, opponentProfiles }) {
   );
 }
 
-export function MatchDetail({ matchId, players, matches, setMatches, availabilities, leagueMatches, opponentProfiles, setOpponentProfiles, setView, currentUser, isEditorAssistant, canDelete = true }) {
+export function MatchDetail({ matchId, players, matches, setMatches, availabilities, leagueMatches, opponentProfiles, setOpponentProfiles, setView, currentUser, isEditorAssistant, canDelete = true, noteWeightHead = 0.5 }) {
   const { t } = useLang();
   const [tab, setTab] = useState("composition");
   const [selected, setSelected] = useState(null); // {type:'slot',index} | {type:'bench', id}
@@ -777,6 +777,14 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
     const v = field === "note" ? clamp(value, 0, 10) : value;
     const stats = { ...match.stats, [playerId]: { ...(match.stats[playerId] || emptyMatchStat()), [field]: v } };
     patch({ stats });
+  };
+  const updateOwnNote = (playerId, value) => {
+    const v = clamp(value, 0, 10);
+    const current = match.stats[playerId] || emptyMatchStat();
+    const next = isEditorAssistant
+      ? { ...current, noteAssistants: { ...(current.noteAssistants || {}), [currentUser?.username || "?"]: v } }
+      : { ...current, note: v };
+    patch({ stats: { ...match.stats, [playerId]: next } });
   };
   const updateTeamStat = (field, value) => patch({ teamStats: { ...match.teamStats, [field]: value } });
 
@@ -1140,7 +1148,20 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
                         <td><input className="cell-input" type="number" min="0" value={s.jaune} onChange={(e) => updateStat(playerId, "jaune", e.target.value)} /></td>
                         <td><input className="cell-input" type="number" min="0" value={s.rouge} onChange={(e) => updateStat(playerId, "rouge", e.target.value)} /></td>
                         <td><input className="cell-input" type="number" min="0" value={minutesVal} onChange={(e) => updateStat(playerId, "minutes", e.target.value)} /></td>
-                        <td><input className="cell-input" type="number" min="0" max="10" step="0.5" value={s.note} onChange={(e) => updateStat(playerId, "note", e.target.value)} /></td>
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <input
+                              className="cell-input" type="number" min="0" max="10" step="0.5"
+                              value={isEditorAssistant ? (s.noteAssistants?.[currentUser?.username || "?"] ?? "") : s.note}
+                              onChange={(e) => updateOwnNote(playerId, e.target.value)}
+                              title={isEditorAssistant ? t("note_own_hint_assistant") : t("note_own_hint_head")}
+                            />
+                            {(() => {
+                              const blended = computeBlendedNote(s, noteWeightHead);
+                              return blended !== null ? <span className="muted mono" style={{ fontSize: 11 }} title={t("note_final_hint")}>→ {blended}</span> : null;
+                            })()}
+                          </div>
+                        </td>
                         {showDetailed && (
                           <>
                             <td><input className="cell-input" type="number" min="0" value={s.tirs} onChange={(e) => updateStat(playerId, "tirs", e.target.value)} /></td>
