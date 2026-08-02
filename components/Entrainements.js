@@ -238,17 +238,28 @@ export function EntrainementDetail({ trainingId, players, trainings, setTraining
     patch({ attendance: nextAll });
   };
 
-  const syncFromAvailability = () => {
-    const nextAll = { ...attendance };
+  // Synchronisation automatique avec les disponibilités : seulement pour les joueurs qui n'ont
+  // encore aucune entrée de présence pour cette séance (nouvelle séance, ou joueur ajouté après
+  // coup). Ne touche jamais une entrée déjà existante, pour ne jamais écraser une correction
+  // manuelle du coach.
+  useEffect(() => {
+    const additions = {};
+    let changed = false;
     players.forEach((p) => {
+      if (attendance[p.id]) return;
       const unavail = isPlayerUnavailable(availabilities, p.id, training.date);
       if (unavail) {
-        nextAll[p.id] = { ...(nextAll[p.id] || emptyAttendance()), present: false, statut: "Absent", raison: t(`avail_${unavail.status}`) };
+        additions[p.id] = { ...emptyAttendance(), present: false, statut: "Absent", raison: t(`avail_${unavail.status}`) };
+        changed = true;
       }
     });
-    setAttendance(nextAll);
-    patch({ attendance: nextAll });
-  };
+    if (changed) {
+      const nextAll = { ...attendance, ...additions };
+      setAttendance(nextAll);
+      patch({ attendance: nextAll });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [training.id, availabilities, players.length]);
 
   const exercises = training.exercises || [];
   const addExercise = (ex, saveToLibrary) => {
@@ -281,7 +292,6 @@ export function EntrainementDetail({ trainingId, players, trainings, setTraining
           <p className="muted mono">{formatDate(training.date)} {training.time || ""} {training.duration ? `· ${training.duration} min` : ""} {training.opponent ? `· vs ${training.opponent}` : ""}</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button className="icon-btn" onClick={syncFromAvailability}><UserCheck size={14} /> {t("sync_availability")}</button>
           <button className="icon-btn" onClick={() => setShowEditInfo(true)}><Pencil size={16} /> {t("common_edit")}</button>
           <button className="icon-btn" onClick={() => { if (confirm(t("confirm_delete_session"))) { setTrainings(trainings.filter((t2) => t2.id !== trainingId)); setView("entrainements"); } }}><Trash2 size={16} /></button>
         </div>
