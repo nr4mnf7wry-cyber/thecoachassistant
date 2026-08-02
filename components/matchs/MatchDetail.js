@@ -786,6 +786,19 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
       : { ...current, note: v };
     patch({ stats: { ...match.stats, [playerId]: next } });
   };
+  // Ajuste le nombre de buts d'un joueur directement depuis Score & Statistiques, en ajoutant/retirant
+  // des entrées dans goalsScored (sans minute ni type précisés) — une seule source de vérité, que
+  // le détail ait été saisi via l'onglet Buts ou via ce raccourci.
+  const updateGoalsCount = (playerName, newCount) => {
+    const n = Math.max(0, Math.round(Number(newCount) || 0));
+    const currentEntries = goalsScored.filter((g) => g.player === playerName);
+    const otherEntries = goalsScored.filter((g) => g.player !== playerName);
+    const nextForPlayer = n <= currentEntries.length
+      ? currentEntries.slice(0, n)
+      : [...currentEntries, ...Array.from({ length: n - currentEntries.length }, () => ({ ...emptyGoalEntry(), player: playerName }))];
+    const nextGoalsScored = [...otherEntries, ...nextForPlayer];
+    patch({ goalsScored: nextGoalsScored, stats: syncGoalsToStats(match.stats, players, nextGoalsScored) });
+  };
   const updateTeamStat = (field, value) => patch({ teamStats: { ...match.teamStats, [field]: value } });
 
   const showDetailed = match.showDetailedStats;
@@ -1143,7 +1156,14 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
                             {POSITIONS.map((pos) => <option key={pos} value={pos}>{t(POSITION_KEYS[pos])}</option>)}
                           </select>
                         </td>
-                        <td className="mono" title={t("goals_from_tab_hint")}>{goalsPerPlayer[p.name] || 0}</td>
+                        <td>
+                          <input
+                            className="cell-input" type="number" min="0"
+                            value={goalsPerPlayer[p.name] || 0}
+                            onChange={(e) => updateGoalsCount(p.name, e.target.value)}
+                            title={t("goals_editable_hint")}
+                          />
+                        </td>
                         <td><input className="cell-input" type="number" min="0" value={s.passes} onChange={(e) => updateStat(playerId, "passes", e.target.value)} /></td>
                         <td><input className="cell-input" type="number" min="0" value={s.jaune} onChange={(e) => updateStat(playerId, "jaune", e.target.value)} /></td>
                         <td><input className="cell-input" type="number" min="0" value={s.rouge} onChange={(e) => updateStat(playerId, "rouge", e.target.value)} /></td>
