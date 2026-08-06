@@ -348,7 +348,7 @@ export default function App() {
     />
   );
   else if (view === "matchs") content = <Matchs matches={matches} setMatches={setMatches} currentSeason={currentSeason} setView={setView} canDelete={isHead} />;
-  else if (view.startsWith("match:")) content = <MatchDetail matchId={view.split(":")[1]} players={players} matches={matches} setMatches={setMatches} availabilities={availabilities} leagueMatches={leagueMatches} opponentProfiles={opponentProfiles} setOpponentProfiles={setOpponentProfiles} setView={setView} currentUser={currentUser} isEditorAssistant={isEditorAssistant} canDelete={isHead} noteWeightHead={noteWeightHead} />;
+  else if (view.startsWith("match:")) content = <MatchDetail matchId={view.split(":")[1]} players={players} setPlayers={setPlayers} matches={matches} setMatches={setMatches} availabilities={availabilities} leagueMatches={leagueMatches} opponentProfiles={opponentProfiles} setOpponentProfiles={setOpponentProfiles} setView={setView} currentUser={currentUser} isEditorAssistant={isEditorAssistant} canDelete={isHead} noteWeightHead={noteWeightHead} />;
   else if (view === "reglages") content = (
     <Reglages
       teamName={teamName}

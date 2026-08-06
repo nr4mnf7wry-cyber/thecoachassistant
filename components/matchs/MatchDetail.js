@@ -3,7 +3,7 @@ import { Plus, Trash2, ChevronLeft, Pencil, Download, Upload, Save } from "lucid
 import * as XLSX from "xlsx";
 import { useLang } from "../../lib/i18n";
 import {
-  uid, Badge, POSITIONS, POSITION_KEYS, AVAILABILITY_KEYS,
+  uid, Badge, Modal, POSITIONS, POSITION_KEYS, AVAILABILITY_KEYS,
   emptyMatchStat, computeMinutes, computeBlendedNote, FORMATIONS, formationSlotCount, remapSlotsForFormation, GOAL_TYPE_GROUPS, emptyGoalEntry,
   isPlayerUnavailable, formatDate, clamp, sortByPosition, emptyLiveClock,
 } from "../../lib/shared";
@@ -590,7 +590,7 @@ function MatchLiveTab({ match, patch, squad, players, opponentProfiles }) {
   );
 }
 
-export function MatchDetail({ matchId, players, matches, setMatches, availabilities, leagueMatches, opponentProfiles, setOpponentProfiles, setView, currentUser, isEditorAssistant, canDelete = true, noteWeightHead = 0.5 }) {
+export function MatchDetail({ matchId, players, setPlayers, matches, setMatches, availabilities, leagueMatches, opponentProfiles, setOpponentProfiles, setView, currentUser, isEditorAssistant, canDelete = true, noteWeightHead = 0.5 }) {
   const { t } = useLang();
   const [tab, setTab] = useState("composition");
   const [selected, setSelected] = useState(null); // {type:'slot',index} | {type:'bench', id}
@@ -685,6 +685,21 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
       substitutions: nextSubs, stats, captain: nextSquad.includes(match.captain) ? match.captain : "",
     });
     setSelected(null);
+  };
+
+  // Ajoute rapidement un joueur "testeur" à l'effectif complet (inclus dans toutes les statistiques
+  // comme n'importe quel joueur) et le convoque directement pour ce match.
+  const [showAddTester, setShowAddTester] = useState(false);
+  const [testerForm, setTesterForm] = useState({ name: "", number: "", position: POSITIONS[0] });
+  const addTester = () => {
+    if (!testerForm.name.trim()) return;
+    const newPlayer = { id: uid(), name: testerForm.name.trim(), number: testerForm.number, position: testerForm.position, status: "invite" };
+    setPlayers([...players, newPlayer]);
+    const nextSquad = [...squad, newPlayer.id];
+    const stats = { ...match.stats, [newPlayer.id]: emptyMatchStat() };
+    patch({ squad: nextSquad, stats });
+    setTesterForm({ name: "", number: "", position: POSITIONS[0] });
+    setShowAddTester(false);
   };
 
   // Un assistant éditeur ne modifie jamais directement la convocation : il propose un ajout ou
@@ -923,9 +938,14 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
             </div>
           )}
           <div className="panel">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
               <h3 style={{ margin: 0 }}>{t("panel_convocation")}</h3>
-              <span className="status-chip" style={{ background: "var(--gold)" }}>{squad.length} {t("convocation_selected_count")}</span>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span className="status-chip" style={{ background: "var(--gold)" }}>{squad.length} {t("convocation_selected_count")}</span>
+                {!isEditorAssistant && (
+                  <button className="icon-btn" onClick={() => setShowAddTester(true)}><Plus size={14} /> {t("add_tester")}</button>
+                )}
+              </div>
             </div>
             {isEditorAssistant && (
               <p className="muted" style={{ fontSize: 12.5, marginBottom: 14 }}>{t("propose_hint")}</p>
@@ -1283,6 +1303,25 @@ export function MatchDetail({ matchId, players, matches, setMatches, availabilit
       </datalist>
 
       {showEditInfo && <MatchForm initial={match} onSave={saveEditInfo} onClose={() => setShowEditInfo(false)} />}
+      {showAddTester && (
+        <Modal title={t("add_tester_title")} onClose={() => setShowAddTester(false)}>
+          <p className="muted" style={{ fontSize: 12.5, marginBottom: 14 }}>{t("add_tester_hint")}</p>
+          <div className="form-grid">
+            <label>{t("field_name")}
+              <input autoFocus value={testerForm.name} onChange={(e) => setTesterForm({ ...testerForm, name: e.target.value })} />
+            </label>
+            <label>{t("field_number")}
+              <input type="number" value={testerForm.number} onChange={(e) => setTesterForm({ ...testerForm, number: e.target.value })} />
+            </label>
+            <label>{t("field_position")}
+              <select value={testerForm.position} onChange={(e) => setTesterForm({ ...testerForm, position: e.target.value })}>
+                {POSITIONS.map((pos) => <option key={pos} value={pos}>{t(POSITION_KEYS[pos])}</option>)}
+              </select>
+            </label>
+          </div>
+          <button className="btn-gold" onClick={addTester} disabled={!testerForm.name.trim()}>{t("common_add")}</button>
+        </Modal>
+      )}
     </div>
   );
 }
