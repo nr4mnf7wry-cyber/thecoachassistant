@@ -651,8 +651,21 @@ export function MatchDetail({ matchId, players, setPlayers, matches, setMatches,
   const starters = slots.filter(Boolean);
   const bench = sortByPosition(squad.filter((id) => !slots.includes(id)).map((id) => players.find((p) => p.id === id)).filter(Boolean)).map((p) => p.id);
   const subs = match.substitutions || [];
+  // Simule la succession chronologique des changements pour savoir qui est réellement sur le
+  // terrain à l'instant présent — un joueur sorti redevient disponible pour une nouvelle entrée,
+  // potentiellement plusieurs fois dans le même match.
+  const currentlyOnPitch = useMemo(() => {
+    const sorted = [...subs].sort((a, b) => (Number(a.minute) || 0) - (Number(b.minute) || 0));
+    const onPitch = new Set(starters);
+    sorted.forEach((s) => {
+      if (s.outId) onPitch.delete(s.outId);
+      if (s.inId) onPitch.add(s.inId);
+    });
+    return onPitch;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [match.substitutions, match.lineupSlots]);
   const usedInIds = subs.map((s) => s.inId);
-  const availableBench = bench.filter((id) => !usedInIds.includes(id));
+  const availableBench = squad.filter((id) => !currentlyOnPitch.has(id));
 
   const lastComposedMatch = [...matches]
     .filter((m) => m.id !== match.id && m.date < match.date && ((m.squad || []).length > 0 || (m.lineupSlots || []).some(Boolean)))
@@ -1086,7 +1099,7 @@ export function MatchDetail({ matchId, players, setPlayers, matches, setMatches,
           <div className="panel">
             <h3>{t("panel_substitutions")}</h3>
             {starters.length > 0 && availableBench.length > 0 && (
-              <SubstitutionForm starters={starters} bench={availableBench} players={players} onAdd={addSub} />
+              <SubstitutionForm starters={[...currentlyOnPitch]} bench={availableBench} players={players} onAdd={addSub} />
             )}
             {subs.length === 0 && <p className="muted">{t("sub_none")}</p>}
             {subs.map((s) => (
