@@ -112,6 +112,41 @@ export function Entrainements({ players, trainings, setTrainings, availabilities
   const [showForm, setShowForm] = useState(false);
   const [subTab, setSubTab] = useState("upcoming");
   const { selected, toggle: toggleSelect, clear: clearSelection } = useSelection();
+
+  // Garde les séances à venir synchronisées avec les disponibilités, même sans ouvrir chacune
+  // manuellement — même règle prudente que dans le détail d'une séance : ne touche que les
+  // entrées manquantes ou jamais réellement modifiées par le coach.
+  useEffect(() => {
+    const isPristinePresent = (a) => !a || (a.present === true && a.statut === "Présent" && !a.raison && !a.rpe && !a.vma && !a.vo2max);
+    const isAutoAbsent = (a) => a && a.present === false && a.statut === "Absent" && a.raison && !a.rpe && !a.vma && !a.vo2max;
+    const today = todayStr();
+    let anyChanged = false;
+    const nextTrainings = trainings.map((tr) => {
+      if (tr.date < today) return tr;
+      const attendance = { ...(tr.attendance || {}) };
+      let changed = false;
+      players.filter((p) => (p.status || "titulaire") !== "invite").forEach((p) => {
+        const current = attendance[p.id];
+        const unavail = isPlayerUnavailable(availabilities, p.id, tr.date);
+        if (unavail && isPristinePresent(current)) {
+          const raison = t(`avail_${unavail.status}`);
+          if (!current || current.present !== false || current.raison !== raison) {
+            attendance[p.id] = { ...emptyAttendance(), present: false, statut: "Absent", raison };
+            changed = true;
+          }
+        } else if (!unavail && isAutoAbsent(current)) {
+          attendance[p.id] = emptyAttendance();
+          changed = true;
+        }
+      });
+      if (!changed) return tr;
+      anyChanged = true;
+      return { ...tr, attendance };
+    });
+    if (anyChanged) setTrainings(nextTrainings);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availabilities, players.length]);
+
   const save = (form) => {
     const { recurring, recurUntil, ...base } = form;
     const dates = [];
@@ -238,23 +273,31 @@ export function EntrainementDetail({ trainingId, players, trainings, setTraining
     patch({ attendance: nextAll });
   };
 
-  // Synchronisation automatique avec les disponibilités : seulement pour les joueurs qui n'ont
-  // encore aucune entrée de présence pour cette séance (nouvelle séance, ou joueur ajouté après
-  // coup). Ne touche jamais une entrée déjà existante, pour ne jamais écraser une correction
-  // manuelle du coach.
+  // Synchronisation automatique avec les disponibilités : s'applique aux joueurs sans entrée du
+  // tout, ET à ceux dont l'entrée est encore à sa valeur par défaut (jamais vraiment modifiée par
+  // le coach) — c'est ce deuxième cas qui manquait : une séance créée avant une blessure donne à
+  // chaque joueur une entrée "Présent" par défaut dès le départ, donc il n'y avait plus de vide à
+  // combler ensuite. Ne touche jamais une entrée réellement personnalisée par le coach.
   useEffect(() => {
-    const additions = {};
+    const isPristinePresent = (a) => !a || (a.present === true && a.statut === "Présent" && !a.raison && !a.rpe && !a.vma && !a.vo2max);
+    const isAutoAbsent = (a) => a && a.present === false && a.statut === "Absent" && a.raison && !a.rpe && !a.vma && !a.vo2max;
+    const nextAll = { ...attendance };
     let changed = false;
     players.forEach((p) => {
-      if (attendance[p.id]) return;
+      const current = nextAll[p.id];
       const unavail = isPlayerUnavailable(availabilities, p.id, training.date);
-      if (unavail) {
-        additions[p.id] = { ...emptyAttendance(), present: false, statut: "Absent", raison: t(`avail_${unavail.status}`) };
+      if (unavail && isPristinePresent(current)) {
+        const raison = t(`avail_${unavail.status}`);
+        if (!current || current.present !== false || current.raison !== raison) {
+          nextAll[p.id] = { ...emptyAttendance(), present: false, statut: "Absent", raison };
+          changed = true;
+        }
+      } else if (!unavail && isAutoAbsent(current)) {
+        nextAll[p.id] = emptyAttendance();
         changed = true;
       }
     });
     if (changed) {
-      const nextAll = { ...attendance, ...additions };
       setAttendance(nextAll);
       patch({ attendance: nextAll });
     }
