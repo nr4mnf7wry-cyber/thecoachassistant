@@ -6,7 +6,7 @@ const redis = Redis.fromEnv();
 // Sections qu'un assistant "peut modifier" est autorisé à toucher. Tout le reste du site
 // (effectif, réglages, comptes, staff, saisons...) doit rester strictement identique
 // dans sa requête, sinon la sauvegarde est refusée.
-const EDITOR_ALLOWED_KEYS = new Set(["trainings", "availabilities", "injuries", "matches", "currentSeason"]);
+const EDITOR_ALLOWED_KEYS = new Set(["trainings", "availabilities", "injuries", "matches", "currentSeason", "testers"]);
 
 function deepEqual(a, b) {
   return JSON.stringify(a) === JSON.stringify(b);

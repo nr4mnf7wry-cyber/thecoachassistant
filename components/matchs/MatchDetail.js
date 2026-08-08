@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Plus, Trash2, ChevronLeft, Pencil, Download, Upload, Save } from "lucide-react";
+import { Plus, Trash2, ChevronLeft, Pencil, Download, Upload, Save, UserPlus } from "lucide-react";
 import * as XLSX from "xlsx";
 import { useLang } from "../../lib/i18n";
 import {
@@ -590,7 +590,12 @@ function MatchLiveTab({ match, patch, squad, players, opponentProfiles }) {
   );
 }
 
-export function MatchDetail({ matchId, players, setPlayers, matches, setMatches, availabilities, leagueMatches, opponentProfiles, setOpponentProfiles, setView, currentUser, isEditorAssistant, canDelete = true, noteWeightHead = 0.5 }) {
+export function MatchDetail({ matchId, players: rosterPlayers, setPlayers, testers = [], setTesters, matches, setMatches, availabilities, leagueMatches, opponentProfiles, setOpponentProfiles, setView, currentUser, isEditorAssistant, canDelete = true, noteWeightHead = 0.5 }) {
+  // Vue combinée effectif + testeurs de ce match : permet à tout le code existant (recherche de
+  // joueur par identifiant, affichage nom/poste/dossard...) de fonctionner sans changement pour
+  // un testeur, tout en gardant le vrai effectif (rosterPlayers) strictement séparé pour tout ce
+  // qui touche à l'ajout/retrait réel d'un joueur permanent.
+  const players = useMemo(() => [...rosterPlayers, ...testers], [rosterPlayers, testers]);
   const { t } = useLang();
   const [tab, setTab] = useState("composition");
   const [selected, setSelected] = useState(null); // {type:'slot',index} | {type:'bench', id}
@@ -700,19 +705,34 @@ export function MatchDetail({ matchId, players, setPlayers, matches, setMatches,
     setSelected(null);
   };
 
-  // Ajoute rapidement un joueur "testeur" à l'effectif complet (inclus dans toutes les statistiques
-  // comme n'importe quel joueur) et le convoque directement pour ce match.
+  // Ajoute un joueur "testeur" pour ce match : soit un nouveau (rejoint le vivier des testeurs,
+  // séparé de l'effectif), soit un testeur déjà connu d'un match précédent, repris tel quel — ses
+  // statistiques passées et à venir restent liées au même identifiant, prêtes à basculer dans
+  // l'effectif complet le jour où il est promu.
   const [showAddTester, setShowAddTester] = useState(false);
-  const [testerForm, setTesterForm] = useState({ name: "", number: "", position: POSITIONS[0] });
+  const [testerForm, setTesterForm] = useState({ existingId: "", name: "", number: "", position: POSITIONS[0] });
+  const availableExistingTesters = testers.filter((tp) => !squad.includes(tp.id));
   const addTester = () => {
-    if (!testerForm.name.trim()) return;
-    const newPlayer = { id: uid(), name: testerForm.name.trim(), number: testerForm.number, position: testerForm.position, status: "invite" };
-    setPlayers([...players, newPlayer]);
-    const nextSquad = [...squad, newPlayer.id];
-    const stats = { ...match.stats, [newPlayer.id]: emptyMatchStat() };
+    let testerId = testerForm.existingId;
+    if (!testerId) {
+      if (!testerForm.name.trim()) return;
+      const newTester = { id: uid(), name: testerForm.name.trim(), number: testerForm.number, position: testerForm.position, status: "invite" };
+      setTesters([...testers, newTester]);
+      testerId = newTester.id;
+    }
+    const nextSquad = [...squad, testerId];
+    const stats = { ...match.stats, [testerId]: match.stats[testerId] || emptyMatchStat() };
     patch({ squad: nextSquad, stats });
-    setTesterForm({ name: "", number: "", position: POSITIONS[0] });
+    setTesterForm({ existingId: "", name: "", number: "", position: POSITIONS[0] });
     setShowAddTester(false);
+  };
+  const promoteTester = (testerId) => {
+    const tester = testers.find((tp) => tp.id === testerId);
+    if (!tester) return;
+    if (!confirm(t("confirm_promote_tester"))) return;
+    const { status, ...promoted } = tester;
+    setPlayers([...rosterPlayers, promoted]);
+    setTesters(testers.filter((tp) => tp.id !== testerId));
   };
 
   // Un assistant éditeur ne modifie jamais directement la convocation : il propose un ajout ou
@@ -1000,11 +1020,12 @@ export function MatchDetail({ matchId, players, setPlayers, matches, setMatches,
                     {group.map((p) => {
                       const isSelected = squad.includes(p.id);
                       const isGuest = (p.status || "titulaire") === "invite";
+                      const isTester = testers.some((tp) => tp.id === p.id);
                       const proposal = proposedChanges.find((c) => c.playerId === p.id);
                       const onChipClick = isEditorAssistant ? () => proposeSquadChange(p.id) : () => toggleSquad(p.id);
                       return (
+                        <div key={p.id} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
                         <button
-                          key={p.id}
                           className={"player-chip" + (isSelected ? " selected" : "") + (proposal ? " proposed-" + proposal.action : "")}
                           onClick={onChipClick}
                           title={proposal ? `${t("proposal_pending")} : ${t(proposal.action === "add" ? "proposal_add" : "proposal_remove")}` : ""}
@@ -1012,6 +1033,10 @@ export function MatchDetail({ matchId, players, setPlayers, matches, setMatches,
                           <Badge number={p.number} size={22} /> {p.name}{isGuest && <span className="mono" style={{ fontSize: 10, opacity: 0.8 }}> ({t("badge_guest")})</span>}
                           {proposal && <span className="proposal-dot" />}
                         </button>
+                        {isTester && !isEditorAssistant && (
+                          <button className="icon-btn" title={t("promote_tester")} onClick={() => promoteTester(p.id)}><UserPlus size={12} /></button>
+                        )}
+                        </div>
                       );
                     })}
                   </div>
@@ -1319,20 +1344,33 @@ export function MatchDetail({ matchId, players, setPlayers, matches, setMatches,
       {showAddTester && (
         <Modal title={t("add_tester_title")} onClose={() => setShowAddTester(false)}>
           <p className="muted" style={{ fontSize: 12.5, marginBottom: 14 }}>{t("add_tester_hint")}</p>
-          <div className="form-grid">
-            <label>{t("field_name")}
-              <input autoFocus value={testerForm.name} onChange={(e) => setTesterForm({ ...testerForm, name: e.target.value })} />
-            </label>
-            <label>{t("field_number")}
-              <input type="number" value={testerForm.number} onChange={(e) => setTesterForm({ ...testerForm, number: e.target.value })} />
-            </label>
-            <label>{t("field_position")}
-              <select value={testerForm.position} onChange={(e) => setTesterForm({ ...testerForm, position: e.target.value })}>
-                {POSITIONS.map((pos) => <option key={pos} value={pos}>{t(POSITION_KEYS[pos])}</option>)}
+          {availableExistingTesters.length > 0 && (
+            <label style={{ display: "block", marginBottom: 14 }}>{t("add_tester_existing")}
+              <select
+                value={testerForm.existingId}
+                onChange={(e) => setTesterForm({ ...testerForm, existingId: e.target.value, name: "" })}
+              >
+                <option value="">{t("add_tester_new_one")}</option>
+                {availableExistingTesters.map((tp) => <option key={tp.id} value={tp.id}>{tp.name}</option>)}
               </select>
             </label>
-          </div>
-          <button className="btn-gold" onClick={addTester} disabled={!testerForm.name.trim()}>{t("common_add")}</button>
+          )}
+          {!testerForm.existingId && (
+            <div className="form-grid">
+              <label>{t("field_name")}
+                <input autoFocus value={testerForm.name} onChange={(e) => setTesterForm({ ...testerForm, name: e.target.value })} />
+              </label>
+              <label>{t("field_number")}
+                <input type="number" value={testerForm.number} onChange={(e) => setTesterForm({ ...testerForm, number: e.target.value })} />
+              </label>
+              <label>{t("field_position")}
+                <select value={testerForm.position} onChange={(e) => setTesterForm({ ...testerForm, position: e.target.value })}>
+                  {POSITIONS.map((pos) => <option key={pos} value={pos}>{t(POSITION_KEYS[pos])}</option>)}
+                </select>
+              </label>
+            </div>
+          )}
+          <button className="btn-gold" onClick={addTester} disabled={!testerForm.existingId && !testerForm.name.trim()}>{t("common_add")}</button>
         </Modal>
       )}
     </div>
